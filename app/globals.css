@@ -1,26 +1,328 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cream: #f2e9e4;
+  --expresso: #283618;
+  --cocoa: #6a040f;
+  --dark: #17171a;
+  --line: rgba(37, 35, 32, 0.18);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Base */
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--cream);
+  color: black;
+  font-family: 'Manrope', sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.site-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 34px clamp(24px, 6vw, 92px) 24px;
+  background: var(--cream);
+}
+
+/* Ambient background */
+.ambient-shape {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  opacity: .32;
+  filter: blur(1px);
+}
+
+.ambient-shape-left {
+  width: 420px;
+  height: 420px;
+  background: #edc9bc;
+  top: 13%;
+  left: -260px;
+}
+
+.ambient-shape-right {
+  width: 320px;
+  height: 320px;
+  background: #cbd3bf;
+  top: 30%;
+  right: -190px;
+}
+
+/* Shared section layout */
+.site-header,
+.separator,
+.title,
+.actions-section,
+.site-footer,
+.footer-line {
+  position: relative;
+  z-index: 1;
+  max-width: 1200px;
+  margin-inline: auto;
+}
+
+/* Header */
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 22px;
+}
+
+.separator {
+  border-top: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+}
+
+.brand-mark-name {
+  font-size: 50px;
+  font-weight: 500;
+  line-height: 1;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.brand-mark-subtitle {
+  font-size: 20px;
+  font-family: 'Manrope', sans-serif;
+}
+
+.header-motto {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: var(--expresso);
+  font-weight: 400;
+  font-size: 20px;
+  font-style: italic;
+  font-family: 'DM Mono', monospace;
+  transition: background-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.header-motto:hover {
+  background: var(--cocoa);
+  color: var(--cream);
+  transform: translateY(-2px);
+}
+
+.location-pin {
+  font-size: 20px;
+  font-style: normal;
+  line-height: 1;
+}
+
+/* Inicio / title */
+.title {
+  text-align: center;
+  margin-top: 80px;
+  margin-bottom: 100px;
+}
+
+.eyebrow,
+.section-label,
+.footer-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--dark);
+  font-size: 20px;
+    font-family: 'Manrope', sans-serif;
+  text-transform: uppercase;
+}
+
+.eyebrow-spark {
+  color: #d9a928;
+  font: 400 15px/1 'Cormorant Garamond', serif;
+  animation: sparkle 1.8s ease-in-out infinite;
+}
+
+.eyebrow > span:last-child {
+  display: inline;
+}
+
+.title h1 {
+  position: relative;
+  max-width: 1150px;
+  margin-right: auto;
+  margin-left: auto;
+  margin-top: 23px;
+  margin-bottom: 31px;
+  font: 500 clamp(58px, 9vw, 126px)/.87 'Cormorant Garamond', serif;
+  letter-spacing: -.065em;
+}
+
+.title h1 span {
+  display: block;
+}
+
+.title-accent {
+  margin-top: 18px;
+  color: var(--expresso);
+  font: 500 clamp(32px, 4.5vw, 64px)/.95 'Cormorant Garamond', serif;
+  font-style: italic;
+  letter-spacing: -.035em;
+}
+
+.title-accent .spark {
+  display: inline-block;
+  color: #d9a928;
+  font: 400 .28em/1 'Cormorant Garamond', serif;
+  vertical-align: .8em;
+  animation: sparkle 1.8s ease-in-out infinite;
+}
+
+.title-accent .spark:first-child { margin-right: .22em; }
+.title-accent .spark:last-child {
+  margin-left: .22em;
+  animation-delay: .9s;
+}
+
+.title-main {
+  color: var(--cocoa);
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: .45;
+    transform: scale(.72) rotate(0deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(12deg);
+  }
+}
+
+/* Cards section */
+.section-intro {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-top: 16px;
+  margin-bottom: 27px;
+}
+
+.section-intro p {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  font-style: italic;
+
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+/* Mas informacion / footer */
+.site-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 22px;
+  margin-top: 100px;
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.social-links {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  transition: background-color .2s ease, color .2s ease, transform .2s ease;
+}
+
+.social-links a:hover {
+  background: var(--cocoa);
+  color: var(--cream);
+  transform: translateY(-2px);
+}
+
+.social-icon {
+  color: var(--expresso);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.social-links a:hover .social-icon {
+  color: var(--cream);
+}
+
+.footer-line {
+  height: 4px;
+  background: var(--expresso);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .site-shell {
+    padding: 23px 20px 18px;
+  }
+
+  .header-motto {
+    max-width: 130px;
+    text-align: right;
+    line-height: 1.45;
+  }
+
+  .title h1 {
+    font-size: clamp(58px, 16vw, 92px);
+    line-height: .86;
+  }
+
+  .section-intro {
+    display: block;
+  }
+
+  .section-intro p {
+    margin-top: 10px;
+  }
+
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
 }
