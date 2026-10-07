@@ -1,12 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,500;0,600;1,500;1,600&display=swap');
 @import "tailwindcss";
 
+
+/* Global colors and typography */
 :root {
-  --cream: #f2e9e4;
-  --expresso: #283618;
-  --cocoa: #6a040f;
-  --dark: #17171a;
-  --line: rgba(37, 35, 32, 0.18);
+  --font-seasons: "The Seasons", Georgia, serif;
+  --font-poppins: sans-serif;
+
+  --font-size-small: 15px;
+  --font-size-medium: 20px;
+  --font-size-large: 50px;
+  --font-size-xlarge: 75px;
+
+  --color-ink: #2E2A26;
+  --color-brown: #715F51;
+  --color-sand: #B49D85;
+  --color-stone: #D3C4B2;
+  --color-cream: #F0E9E1;
 }
 
 /* Base */
@@ -20,9 +29,9 @@ html {
 
 body {
   margin: 0;
-  background: var(--cream);
+  background: var(--color-cream);
   color: black;
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-poppins);
 }
 
 a {
@@ -34,8 +43,8 @@ a {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  padding: 34px clamp(24px, 6vw, 92px) 24px;
-  background: var(--cream);
+  padding: 30px;
+  background: var(--color-cream);
 }
 
 /* Ambient background */
@@ -50,7 +59,7 @@ a {
 .ambient-shape-left {
   width: 420px;
   height: 420px;
-  background: #edc9bc;
+  background: color-mix(in srgb, var(--color-stone) 65%, var(--color-sand));
   top: 13%;
   left: -260px;
 }
@@ -58,18 +67,15 @@ a {
 .ambient-shape-right {
   width: 320px;
   height: 320px;
-  background: #cbd3bf;
+  background: var(--color-stone);
   top: 30%;
   right: -190px;
 }
 
 /* Shared section layout */
-.site-header,
-.separator,
-.title,
+.about-section,
 .actions-section,
-.site-footer,
-.footer-line {
+.site-footer {
   position: relative;
   z-index: 1;
   max-width: 1200px;
@@ -77,74 +83,161 @@ a {
 }
 
 /* Header */
-.site-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 22px;
-}
-
-.separator {
-  border-top: 1px solid var(--line);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
 .brand-mark {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 0;
 }
 
 .brand-mark-name {
-  font-size: 50px;
+  font-size: var(--font-size-large);
   font-weight: 500;
   line-height: 1;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: var(--font-seasons);
 }
 
 .brand-mark-subtitle {
-  font-size: 20px;
-  font-family: 'Manrope', sans-serif;
+  font-size: var(--font-size-medium);
+  font-family: var(--font-poppins);
 }
 
-.header-motto {
-  display: inline-flex;
+.header-nav {
+  border-top: 1px solid var(--color-stone);
+  border-bottom: 1px solid var(--color-stone);
+  width: 60%;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 10px 16px;
-  color: var(--expresso);
-  font-weight: 400;
-  font-size: 20px;
+  justify-content: center;
+  gap: 50px;
+  margin-inline: auto;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.header-nav a {
+  padding: 10px;
+  color: var(--color-ink);
+  font-family: var(--font-poppins);
+  font-size: var(--font-size-medium);
   font-style: italic;
-  font-family: 'DM Mono', monospace;
-  transition: background-color .2s ease, color .2s ease, transform .2s ease;
+  font-weight: 500;
+  text-align: center;
 }
 
-.header-motto:hover {
-  background: var(--cocoa);
-  color: var(--cream);
-  transform: translateY(-2px);
+.header-nav a:hover {
+  color: black;
+  text-decoration: underline;
 }
 
-.location-pin {
-  font-size: 20px;
-  font-style: normal;
+/* About */
+.about-section {
+  position: relative;
+  left: 50%;
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  width: 100vw;
+  max-width: none;
+  min-height: 70vh;
+  margin-left: -50vw;
+  overflow: hidden;
+  background: var(--color-stone);
+}
+
+.about-image {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.about-photo {
+  object-fit: cover;
+}
+
+.about-photo-desktop {
+  display: block;
+}
+
+.about-photo-mobile {
+  display: none;
+}
+
+.about-photo-left {
+  object-position: 55% center;
+}
+
+.about-photo-right {
+  object-position: center 35%;
+}
+
+.about-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px;
+  background: var(--color-cream);
+}
+
+.about-spark {
+  position: absolute;
+  top: 44px;
+  right: 48px;
+  color: var(--color-stone);
+  font-size: var(--font-size-large);
   line-height: 1;
 }
 
-/* Inicio / title */
-.title {
-  text-align: center;
-  margin-top: 80px;
-  margin-bottom: 100px;
+.about-kicker {
+  margin: 0 0 18px;
+  color: var(--color-brown);
+  font-family: var(--font-poppins);
+  font-size: var(--font-size-medium);
+  font-weight: 500;
+}
+
+.about-content h1 {
+  max-width: 620px;
+  margin: 0;
+  color: var(--color-brown);
+  font-family: var(--font-seasons);
+  font-size: var(--font-size-xlarge);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.about-content h1 span {
+  display: block;
+  color: black;
+  font-style: italic;
+}
+
+.about-description {
+  max-width: fit-content;
+  margin: 40px 0 0;
+  color: var(--color-brown);
+  font-family: var(--font-poppins);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+}
+
+.about-scroll-link {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 26px;
+  color: var(--color-ink);
+  font-family: var(--font-seasons);
+  font-size: var(--font-size-medium);
+  font-style: italic;
+  text-decoration: underline;
+  text-underline-offset: 10px;
+}
+
+.about-scroll-link span {
+  font-family: var(--font-poppins), sans-serif;
+  font-style: normal;
 }
 
 .eyebrow,
@@ -155,63 +248,24 @@ a {
   gap: 10px;
   color: var(--dark);
   font-size: 20px;
-    font-family: 'Manrope', sans-serif;
+  font-family: var(--font-poppins), sans-serif;
   text-transform: uppercase;
 }
 
 .eyebrow-spark {
-  color: #d9a928;
-  font: 400 15px/1 'Cormorant Garamond', serif;
+  color: var(--color-sand);
+  font: 400 15px/1 var(--font-seasons);
   animation: sparkle 1.8s ease-in-out infinite;
 }
 
-.eyebrow > span:last-child {
+.eyebrow>span:last-child {
   display: inline;
 }
 
-.title h1 {
-  position: relative;
-  max-width: 1150px;
-  margin-right: auto;
-  margin-left: auto;
-  margin-top: 23px;
-  margin-bottom: 31px;
-  font: 500 clamp(58px, 9vw, 126px)/.87 'Cormorant Garamond', serif;
-  letter-spacing: -.065em;
-}
-
-.title h1 span {
-  display: block;
-}
-
-.title-accent {
-  margin-top: 18px;
-  color: var(--expresso);
-  font: 500 clamp(32px, 4.5vw, 64px)/.95 'Cormorant Garamond', serif;
-  font-style: italic;
-  letter-spacing: -.035em;
-}
-
-.title-accent .spark {
-  display: inline-block;
-  color: #d9a928;
-  font: 400 .28em/1 'Cormorant Garamond', serif;
-  vertical-align: .8em;
-  animation: sparkle 1.8s ease-in-out infinite;
-}
-
-.title-accent .spark:first-child { margin-right: .22em; }
-.title-accent .spark:last-child {
-  margin-left: .22em;
-  animation-delay: .9s;
-}
-
-.title-main {
-  color: var(--cocoa);
-}
-
 @keyframes sparkle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: .45;
     transform: scale(.72) rotate(0deg);
   }
@@ -292,26 +346,65 @@ a {
   color: var(--cream);
 }
 
-.footer-line {
-  height: 4px;
-  background: var(--expresso);
-}
-
 /* Responsive */
 @media (max-width: 700px) {
   .site-shell {
     padding: 23px 20px 18px;
   }
 
-  .header-motto {
-    max-width: 130px;
-    text-align: right;
-    line-height: 1.45;
+  .site-header {
+    gap: 14px;
   }
 
-  .title h1 {
-    font-size: clamp(58px, 16vw, 92px);
-    line-height: .86;
+  .header-nav {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .header-nav a {
+    font-size: 12px;
+  }
+
+  .about-section {
+    grid-template-columns: 1fr;
+    grid-template-rows: 30vh auto 30vh;
+    min-height: 0;
+  }
+
+  .about-photo-desktop {
+    display: none;
+  }
+
+  .about-photo-mobile {
+    display: block;
+    filter: grayscale(1);
+  }
+
+  .about-content {
+    min-height: 0;
+    padding: 20px 25px 25px;
+  }
+
+  .about-spark {
+    top: 24px;
+    right: 24px;
+    font-size: 54px;
+  }
+
+  .about-content h1 {
+    font-size: 52px;
+  }
+
+  .about-description {
+    margin-top: 24px;
+    font-size: 14px;
+  }
+
+  .about-scroll-link {
+    align-self: flex-start;
+    margin-top: 10px;
+    font-size: var(--font-size-small);
   }
 
   .section-intro {

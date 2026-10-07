@@ -5,30 +5,30 @@
   min-height: 405px;
   padding: 36px 35px 34px;
   overflow: hidden;
-  border: 1px solid #ddd7ce;
+  border: 1px solid color-mix(in srgb, var(--color-stone) 70%, transparent);
   border-radius: 22px;
-  background: rgba(255, 255, 255, .68);
-  color: #292a35;
+  background: color-mix(in srgb, var(--color-cream) 86%, transparent);
+  color: var(--color-ink);
   transition: transform .25s ease, box-shadow .25s ease;
 }
 
 .card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 18px 34px rgba(50, 40, 30, .09);
+  box-shadow: 0 18px 34px color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
 .topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #62636d;
-  font: 600 16px/1 'DM Mono', monospace;
+  color: var(--color-brown);
+  font: 600 16px/1 var(--font-poppins), sans-serif;
   letter-spacing: .08em;
 }
 
 .symbol {
-  color: #5d5e68;
-  font: 400 31px/1 'Manrope', sans-serif;
+  color: var(--color-brown);
+  font: 400 31px/1 var(--font-poppins), sans-serif;
   letter-spacing: 0;
 }
 
@@ -39,15 +39,15 @@
 .content h3 {
   max-width: 320px;
   margin: 0 0 13px;
-  font: 500 clamp(38px, 3.3vw, 58px)/.92 'Playfair Display', serif;
+  font: 500 clamp(38px, 3.3vw, 58px)/.92 var(--font-seasons);
   letter-spacing: -.06em;
 }
 
 .content p {
   max-width: 315px;
   margin: 0;
-  color: #6b6c75;
-  font: 400 18px/1.55 'Manrope', sans-serif;
+  color: color-mix(in srgb, var(--color-brown) 84%, var(--color-cream));
+  font: 400 18px/1.55 var(--font-poppins), sans-serif;
 }
 
 .link {
@@ -58,12 +58,12 @@
   width: 52px;
   height: 52px;
   place-items: center;
-  border: 1px solid #292a35;
+  border: 1px solid var(--color-ink);
   border-radius: 50%;
 }
 
 .arrow {
-  font: 400 29px/1 'Manrope', sans-serif;
+  font: 400 29px/1 var(--font-poppins), sans-serif;
   transition: transform .2s ease;
 }
 
