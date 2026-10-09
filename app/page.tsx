@@ -4,13 +4,16 @@ import studioImage from "./assets/web2.jpg";
 import mobile1 from "./assets/mobile1.jpg";
 import mobile2 from "./assets/mobile2.jpg";
 
+import { FaInstagram, FaTiktok } from "react-icons/fa";
 import { ActionCard } from "@/components/ActionCard";
+import { IoLocationOutline } from "react-icons/io5";
 
 const actions = [
   {
     number: "01",
     title: "Crear un turno",
-    description: "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
+    description:
+      "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
     href: "#crear-turno",
     label: "Agendar turno",
   },
@@ -125,43 +128,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* <div className="ambient-shape ambient-shape-left" />
-      <div className="ambient-shape ambient-shape-right" /> */}
       {/* 
-      
-      
-
-      <footer className="site-footer" id="mas-informacion">
-        <div>
-          <span className="section-label">Más información</span>
+      <footer id="more-info" aria-labelledby="more-info-heading">
+        <div className="section-label">
+          <span id="more-info-heading">Más información</span>
         </div>
-        <nav className="social-links" aria-label="Redes sociales">
-          <a href="#instagram" aria-label="Instagram">
-            <span className="social-icon" aria-hidden="true">
-              ◎
-            </span>
-            Instagram
-          </a>
-          <a href="#tiktok" aria-label="TikTok">
-            <span className="social-icon" aria-hidden="true">
-              ♪
-            </span>
-            TikTok
-          </a>
-          <a
-            href="https://maps.app.goo.gl/WrzX92Q3168sPiAx5"
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Ver ubicación en Google Maps"
-          >
-            <span className="social-icon" aria-hidden="true">
-              📍
-            </span>
-            Ubicación
-          </a>
-        </nav>
+        
+     
       </footer>
-      */}
+ */}
     </main>
   );
 }

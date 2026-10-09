@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 /* Global colors and typography */
 :root {
   --font-seasons: "The Seasons", Georgia, serif;
@@ -48,31 +47,6 @@ a {
   overflow: hidden;
   padding: 30px;
   background: var(--color-cream);
-}
-
-/* Ambient background */
-.ambient-shape {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 50%;
-  opacity: .32;
-  filter: blur(1px);
-}
-
-.ambient-shape-left {
-  width: 420px;
-  height: 420px;
-  background: color-mix(in srgb, var(--color-stone) 65%, var(--color-sand));
-  top: 13%;
-  left: -260px;
-}
-
-.ambient-shape-right {
-  width: 320px;
-  height: 320px;
-  background: var(--color-stone);
-  top: 30%;
-  right: -190px;
 }
 
 /* Shared section layout */
@@ -288,80 +262,10 @@ a {
   }
 }
 
-/* Cards section */
-.section-intro {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-top: 16px;
-  margin-bottom: 27px;
-}
-
-.section-intro p {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  font-style: italic;
-
-}
-
-
-
-/* Mas informacion / footer */
-.site-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 22px;
-  margin-top: 100px;
-  margin-bottom: 30px;
-  text-align: left;
-}
-
-.social-links {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.social-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-size: 12px;
-  font-weight: 700;
-  transition: background-color .2s ease, color .2s ease, transform .2s ease;
-}
-
-.social-links a:hover {
-  background: var(--cocoa);
-  color: var(--cream);
-  transform: translateY(-2px);
-}
-
-.social-icon {
-  color: var(--expresso);
-  font-size: 16px;
-  line-height: 1;
-}
-
-.social-links a:hover .social-icon {
-  color: var(--cream);
-}
-
 /* Responsive */
 @media (max-width: 700px) {
   .site-shell {
     padding: 23px 20px 18px;
-  }
-
-  .site-header {
-    gap: 14px;
   }
 
   .header-nav {
@@ -405,14 +309,6 @@ a {
   }
 
   .about-scroll-link {
-    margin-top: 10px;
-  }
-
-  .section-intro {
-    display: block;
-  }
-
-  .section-intro p {
     margin-top: 10px;
   }
 
