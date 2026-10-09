@@ -1,40 +1,46 @@
+import { FiArrowRight, FiCalendar,  FiX } from "react-icons/fi";
+import { GoPencil } from "react-icons/go";
 import styles from "./ActionCard.module.css";
 
-type ActionCardProps = {
+type ActionCardItem = {
   number: string;
   title: string;
   description: string;
   href: string;
   label: string;
-  tone: "terracotta" | "sage" | "sand";
 };
 
-export function ActionCard({
-  number,
-  title,
-  description,
-  href,
-  label,
-  tone,
-}: ActionCardProps) {
-  const cardMeta = {
-    terracotta: { label: "AGENDAR", symbol: "▦" },
-    sage: { label: "CAMBIAR", symbol: "✎" },
-    sand: { label: "LIBERAR", symbol: "×" },
-  }[tone];
+type ActionCardProps = {
+  card: ActionCardItem;
+  index: number;
+};
+
+const cardMeta = [
+  { label: "AGENDAR", Icon: FiCalendar },
+  { label: "MODIFICAR", Icon: GoPencil },
+  { label: "CANCELAR", Icon: FiX },
+];
+
+export function ActionCard({ card, index }: ActionCardProps) {
+  const meta = cardMeta[index % cardMeta.length];
+  const Icon = meta.Icon;
 
   return (
     <article className={styles.card}>
-      <div className={styles.topline}>
-        <span>{number} / {cardMeta.label}</span>
-        <span className={styles.symbol} aria-hidden="true">{cardMeta.symbol}</span>
+      <div className={styles.cardTitle}>
+        <span>
+          {card.number} / {meta.label}
+        </span>
+        <Icon className={styles.symbol} aria-hidden="true" />
       </div>
       <div className={styles.content}>
-        <h3>{title}</h3>
-        <p>{description}</p>
+        <h3>{card.title}</h3>
+        <p>{card.description}</p>
       </div>
-      <a className={styles.link} href={href} aria-label={label}>
-        <span className={styles.arrow} aria-hidden="true">→</span>
+      <a className={styles.link} href={card.href} aria-label={card.label}>
+        <span className={styles.arrow} aria-hidden="true">
+          <FiArrowRight />
+        </span>
       </a>
     </article>
   );

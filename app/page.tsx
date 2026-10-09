@@ -4,35 +4,31 @@ import studioImage from "./assets/web2.jpg";
 import mobile1 from "./assets/mobile1.jpg";
 import mobile2 from "./assets/mobile2.jpg";
 
+import { ActionCard } from "@/components/ActionCard";
 
-/*
 const actions = [
   {
     number: "01",
     title: "Crear un turno",
-    description: "Elegí tu servicio y encontrá el momento ideal para vos.",
+    description: "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
     href: "#crear-turno",
-    label: "Agendar ahora",
-    tone: "terracotta" as const,
+    label: "Agendar turno",
   },
   {
     number: "02",
-    title: "Modificar mi turno",
-    description: "¿Necesitás cambiar el día o el horario? Lo hacemos fácil.",
+    title: "Modificar turno",
+    description: "Encontrá una nueva fecha o un horario que te quede mejor.",
     href: "#modificar-turno",
     label: "Modificar turno",
-    tone: "sage" as const,
   },
   {
     number: "03",
-    title: "Cancelar mi turno",
-    description: "Liberá tu reserva de forma simple y sin vueltas.",
+    title: "Cancelar turno",
+    description: "Cancelá tu reserva de forma simple.",
     href: "#cancelar-turno",
     label: "Cancelar turno",
-    tone: "sand" as const,
   },
 ];
-*/
 
 export default function Home() {
   return (
@@ -46,11 +42,15 @@ export default function Home() {
 
       <nav className="header-nav" aria-label="Navegación principal">
         <a href="#inicio">Sobre nosotros</a>
-        <a href="#agendar-turno">Agendar turno</a>
+        <a href="#opciones-turno">Opciones de turno</a>
         <a href="#mas-informacion">Más información</a>
       </nav>
 
-      <section className="about-section" id="inicio" aria-labelledby="about-heading">
+      <section
+        className="about-section"
+        id="inicio"
+        aria-labelledby="about-heading"
+      >
         <div className="about-image about-image-left">
           <Image
             src={profileImage}
@@ -70,7 +70,9 @@ export default function Home() {
           />
         </div>
         <div className="about-content">
-          <span className="about-spark" aria-hidden="true">✦</span>
+          <span className="about-spark" aria-hidden="true">
+            ✦
+          </span>
           <p className="about-kicker">Creado por Milagro Chacón</p>
           <h1 id="about-heading">
             BLABLABLA <span>babababba</span>
@@ -79,10 +81,9 @@ export default function Home() {
             Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
             euismod, nisl vel tincidunt lacinia, nunc est aliquam nunc, eget
             aliquam nisl nunc euismod nunc. Sed euismod, nisl vel tincidunt
-            lacinia, nunc est aliquam nunc, eget aliquam nisl nunc euismod
-            nunc.
+            lacinia, nunc est aliquam nunc, eget aliquam nisl nunc euismod nunc.
           </p>
-          <a className="about-scroll-link" href="#agendar-turno">
+          <a className="about-scroll-link" href="#opciones-turno">
             agenda un turno
           </a>
         </div>
@@ -106,32 +107,33 @@ export default function Home() {
         </div>
       </section>
 
-
-    {/* <div className="ambient-shape ambient-shape-left" />
-      <div className="ambient-shape ambient-shape-right" /> */}
-      {/* 
-      
       <section
         className="actions-section"
-        id="agendar-turno"
-        aria-labelledby="actions-heading"
+        id="opciones-turno"
+        aria-labelledby="options-heading"
       >
-        <div className="eyebrow">
-          <span className="eyebrow-spark" aria-hidden="true">
+        <div className="section-label">
+          <span className="star" aria-hidden="true">
             ✦
           </span>
-          <span>Agendá tu próximo turno</span>
+          <span id="options-heading">Elige una opción</span>
         </div>
         <div className="actions-grid">
-          {actions.map((action) => (
-            <ActionCard key={action.number} {...action} />
+          {actions.map((action, index) => (
+            <ActionCard key={action.number} card={action} index={index} />
           ))}
         </div>
       </section>
 
+      {/* <div className="ambient-shape ambient-shape-left" />
+      <div className="ambient-shape ambient-shape-right" /> */}
+      {/* 
+      
+      
+
       <footer className="site-footer" id="mas-informacion">
         <div>
-          <span className="footer-label">Más información</span>
+          <span className="section-label">Más información</span>
         </div>
         <nav className="social-links" aria-label="Redes sociales">
           <a href="#instagram" aria-label="Instagram">
@@ -160,7 +162,6 @@ export default function Home() {
         </nav>
       </footer>
       */}
-
     </main>
   );
 }
