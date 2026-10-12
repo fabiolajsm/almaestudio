@@ -76,7 +76,7 @@ export default function Home() {
             aliquam nisl nunc euismod nunc. Sed euismod, nisl vel tincidunt
             lacinia, nunc est aliquam nunc, eget aliquam nisl nunc euismod nunc.
           </p>
-          <a className="about-scroll-link" href="#opciones-turno">
+          <a className="about-scroll-link" href="/Appoinments/Create">
             agenda un turno
           </a>
         </div>
