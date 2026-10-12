@@ -7,8 +7,8 @@ export default function ModifyAppointmentPage() {
       <SiteHeader />
       <AppointmentHeader
         actionLabel="Modificar turno"
-        title="Tu próximo momento."
-        description="Elegí con calma. La agenda se actualiza en cada paso."
+        title="Hacé lugar a un cambio."
+        description="Podés cambiar el servicio, la fecha o el horario de tu reserva actual."
       />
     </main>
   );

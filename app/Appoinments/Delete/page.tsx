@@ -7,8 +7,8 @@ export default function DeleteAppointmentPage() {
       <SiteHeader />
       <AppointmentHeader
         actionLabel="Cancelar turno"
-        title="Tu próximo momento."
-        description="Elegí con calma. La agenda se actualiza en cada paso."
+        title="Liberá tu espacio."
+        description="Antes de cancelar, revisá que sea la reserva correcta."
       />
     </main>
   );
