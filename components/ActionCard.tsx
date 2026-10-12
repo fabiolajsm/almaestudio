@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FiArrowRight, FiCalendar,  FiX } from "react-icons/fi";
 import { GoPencil } from "react-icons/go";
 import styles from "./ActionCard.module.css";
@@ -37,11 +38,11 @@ export function ActionCard({ card, index }: ActionCardProps) {
         <h3>{card.title}</h3>
         <p>{card.description}</p>
       </div>
-      <a className={styles.link} href={card.href} aria-label={card.label}>
+      <Link className={styles.link} href={card.href} aria-label={card.label}>
         <span className={styles.arrow} aria-hidden="true">
           <FiArrowRight />
         </span>
-      </a>
+      </Link>
     </article>
   );
 }

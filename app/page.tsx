@@ -7,6 +7,7 @@ import mobile2 from "./assets/mobile2.jpg";
 import { FaInstagram, FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { ActionCard } from "@/components/ActionCard";
 import { IoLocationOutline } from "react-icons/io5";
+import SiteHeader from "./SiteHeader";
 
 const actions = [
   {
@@ -14,21 +15,21 @@ const actions = [
     title: "Crear un turno",
     description:
       "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
-    href: "#crear-turno",
-    label: "Agendar turno",
+    href: "/Appoinments/Create",
+    label: "Agendar un turno",
   },
   {
     number: "02",
     title: "Modificar turno",
     description: "Encontrá una nueva fecha o un horario que te quede mejor.",
-    href: "#modificar-turno",
+    href: "/Appoinments/Modify",
     label: "Modificar turno",
   },
   {
     number: "03",
     title: "Cancelar turno",
     description: "Cancelá tu reserva de forma simple.",
-    href: "#cancelar-turno",
+    href: "/Appoinments/Delete",
     label: "Cancelar turno",
   },
 ];
@@ -36,18 +37,7 @@ const actions = [
 export default function Home() {
   return (
     <main className="site-shell">
-      <header>
-        <span className="brand-mark" aria-label="Alma Estudio">
-          <span className="brand-mark-name">ALMA</span>
-          <span className="brand-mark-subtitle">ESTUDIO</span>
-        </span>
-      </header>
-
-      <nav className="header-nav" aria-label="Navegación principal">
-        <a href="#inicio">Sobre nosotros</a>
-        <a href="#opciones-turno">Opciones de turno</a>
-        <a href="#mas-informacion">Más información</a>
-      </nav>
+      <SiteHeader showNavigation isFixed />
 
       <section
         className="about-section"

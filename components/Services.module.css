@@ -1,0 +1,140 @@
+.services {
+  width: 100%;
+  color: var(--color-ink);
+  font-family: var(--font-poppins);
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.heading h2 {
+  margin: 0;
+  font-size: var(--font-size-medium);
+  font-weight: 600;
+}
+
+.heading p {
+  margin: 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.service {
+  display: flex;
+  width: 100%;
+  min-height: 70px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-stone);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 40%);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.service:hover {
+  border-color: var(--color-sand);
+}
+
+.service:focus-visible {
+  outline: 2px solid var(--color-brown);
+  outline-offset: 3px;
+}
+
+.selected {
+  border-color: #c85d78;
+  background: rgb(200 93 120 / 8%);
+  box-shadow: inset 3px 0 #c85d78;
+}
+
+.selected:hover {
+  border-color: #c85d78;
+}
+
+.details {
+  display: grid;
+  gap: 4px;
+}
+
+.name {
+  font-size: var(--font-size-small);
+  font-weight: 600;
+}
+
+.duration {
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
+.priceAndAction {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.price {
+  color: #c85d78;
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.icon {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--color-stone);
+  border-radius: 50%;
+  color: var(--color-brown);
+  font-size: 14px;
+}
+
+.selected .icon {
+  border-color: #c85d78;
+  color: #c85d78;
+}
+
+.selectionCount {
+  margin: 14px 0 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
+@media (max-width: 480px) {
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .service {
+    padding-inline: 12px;
+  }
+
+  .priceAndAction {
+    gap: 8px;
+  }
+
+  .price {
+    font-size: var(--font-size-small-mobile);
+  }
+}
