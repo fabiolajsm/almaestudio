@@ -1,0 +1,85 @@
+.summary {
+  width: 100%;
+  padding: 20px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-cream) 55%, transparent);
+  color: var(--color-ink);
+  font-family: var(--font-poppins);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-brown);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.emptyState {
+  margin-top: 24px;
+}
+
+.calendarIcon {
+  width: 18px;
+  height: 18px;
+  color: var(--color-brown);
+}
+
+.emptyMessage {
+  margin: 8px 0 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  line-height: 1.5;
+}
+
+.selectedContent {
+  margin-top: 24px;
+}
+
+.title {
+  margin: 0;
+  color: var(--color-ink);
+  font-family: var(--font-seasons);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.15;
+}
+
+.serviceNames,
+.totals {
+  margin: 2px 0 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  line-height: 1.5;
+}
+
+.totals {
+  margin-top: 0;
+}
+
+.appointmentDetails {
+  margin: 18px 0 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-stone);
+}
+
+.detailRow dt,
+.detailRow dd {
+  margin: 0;
+}
+
+.detailRow dd {
+  color: var(--color-ink);
+  font-weight: 600;
+  text-align: right;
+}

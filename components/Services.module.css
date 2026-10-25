@@ -14,7 +14,7 @@
 
 .heading h2 {
   margin: 0;
-  font-size: var(--font-size-medium);
+  font-size: var(--font-size-small);
   font-weight: 600;
 }
 
@@ -42,7 +42,7 @@
   padding: 14px 16px;
   border: 1px solid var(--color-stone);
   border-radius: 14px;
-  background: rgb(255 255 255 / 40%);
+  background: color-mix(in srgb, var(--color-cream) 40%, transparent);
   color: inherit;
   cursor: pointer;
   text-align: left;
@@ -59,23 +59,35 @@
 }
 
 .selected {
-  border-color: #c85d78;
-  background: rgb(200 93 120 / 8%);
-  box-shadow: inset 3px 0 #c85d78;
+  border-color: var(--color-ink);
+  background: var(--color-cream);
+  box-shadow: inset 3px 0 var(--color-ink);
+  color: var(--color-ink);
+}
+
+.selected span {
+  color: var(--color-ink);
 }
 
 .selected:hover {
-  border-color: #c85d78;
+  border-color: var(--color-brown);
 }
 
 .details {
   display: grid;
+  min-width: 0;
   gap: 4px;
 }
 
 .name {
   font-size: var(--font-size-small);
   font-weight: 600;
+}
+
+.description {
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  line-height: 1.4;
 }
 
 .duration {
@@ -91,7 +103,7 @@
 }
 
 .price {
-  color: #c85d78;
+  color: var(--color-brown);
   font-size: var(--font-size-small);
   font-weight: 600;
   white-space: nowrap;
@@ -109,8 +121,8 @@
 }
 
 .selected .icon {
-  border-color: #c85d78;
-  color: #c85d78;
+  border-color: var(--color-ink);
+  color: var(--color-ink);
 }
 
 .selectionCount {

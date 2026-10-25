@@ -1,15 +1,14 @@
-import AppointmentHeader from "../AppointmentHeader";
-import SiteHeader from "../../SiteHeader";
+import { connection } from "next/server";
+import {
+  getArgentinaDateKey,
+  getNextAppointmentDate,
+} from "../appointmentDates";
+import ModifyAppointmentClient from "./ModifyAppointmentClient";
 
-export default function ModifyAppointmentPage() {
-  return (
-    <main className="site-shell">
-      <SiteHeader />
-      <AppointmentHeader
-        actionLabel="Modificar turno"
-        title="Hacé lugar a un cambio."
-        description="Podés cambiar el servicio, la fecha o el horario de tu reserva actual."
-      />
-    </main>
-  );
+export default async function ModifyAppointmentPage() {
+  await connection();
+  const today = getArgentinaDateKey(new Date());
+  const initialDate = getNextAppointmentDate(today);
+
+  return <ModifyAppointmentClient today={today} initialDate={initialDate} />;
 }

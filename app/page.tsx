@@ -12,7 +12,7 @@ import SiteHeader from "./SiteHeader";
 const actions = [
   {
     number: "01",
-    title: "Crear un turno",
+    title: "Sacar turno",
     description:
       "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
     href: "/Appoinments/Create",

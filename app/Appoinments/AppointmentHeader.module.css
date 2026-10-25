@@ -48,7 +48,7 @@
 
 .title {
   margin: 0;
-  color: black;
+  color: var(--color-ink);
   font-family: var(--font-seasons);
   font-size: var(--font-size-xlarge);
   font-weight: 500;
