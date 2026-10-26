@@ -155,7 +155,6 @@ export default function ModifyAppointmentClient({
                 );
                 setMessage("");
               }}
-              showHeading={false}
             />
           </div>
 

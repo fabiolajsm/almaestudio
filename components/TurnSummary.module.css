@@ -10,7 +10,7 @@
 .eyebrow {
   margin: 0;
   color: var(--color-brown);
-  font-size: 10px;
+  font-size: var(--font-size-small-mobile);
   font-weight: 600;
   letter-spacing: 1.5px;
   line-height: 1.5;
@@ -42,16 +42,21 @@
   margin: 0;
   color: var(--color-ink);
   font-family: var(--font-seasons);
-  font-size: 26px;
+  font-size: var(--font-size-medium);
   font-weight: 500;
   line-height: 1.15;
 }
 
 .serviceNames,
-.totals {
-  margin: 2px 0 0;
+.totals,
+.appointmentDetails {
   color: var(--color-brown);
   font-size: var(--font-size-small-mobile);
+}
+
+.serviceNames,
+.totals {
+  margin: 2px 0 0;
   line-height: 1.5;
 }
 
@@ -61,8 +66,6 @@
 
 .appointmentDetails {
   margin: 18px 0 0;
-  color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
 }
 
 .detailRow {
@@ -82,4 +85,10 @@
   color: var(--color-ink);
   font-weight: 600;
   text-align: right;
+}
+
+@media (max-width: 1024px) {
+  .title {
+    font-size: var(--font-size-medium-mobile);
+  }
 }

@@ -64,7 +64,7 @@
   height: 24px;
   place-items: center;
   color: var(--color-brown);
-  font-size: 10px;
+  font-size: var(--font-size-small-mobile);
   font-weight: 600;
 }
 
@@ -132,7 +132,7 @@
   margin: 0;
   padding: 0;
   color: var(--color-brown);
-  font-size: 10px;
+  font-size: var(--font-size-small-mobile);
   list-style: none;
 }
 
@@ -200,7 +200,7 @@
 }
 
 .unavailableLabel {
-  font-size: 10px;
+  font-size: var(--font-size-small-mobile);
 }
 
 .selectedTime {

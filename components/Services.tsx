@@ -13,42 +13,42 @@ export type Service = {
 
 export const services: Service[] = [
   {
-    id: "semi-permanent-polish",
+    id: "01",
     name: "Esmaltado semipermanente",
     description: "Color duradero y brillante para lucir uñas prolijas por semanas.",
     duration: 60,
     price: 18500,
   },
   {
-    id: "kapping-gel",
+    id: "02",
     name: "Kapping gel",
     description: "Refuerzo con gel para proteger tus uñas naturales.",
     duration: 75,
     price: 22000,
   },
   {
-    id: "soft-gel-design",
+    id: "03",
     name: "Soft gel + diseño",
     description: "Extensión con tips soft gel y diseño a tu gusto.",
     duration: 105,
     price: 28500,
   },
   {
-    id: "classic-manicure",
+    id: "04",
     name: "Manicuría clásica",
     description: "Cuidado y prolijidad para tus uñas con un acabado natural.",
     duration: 45,
     price: 13000,
   },
   {
-    id: "eyebrow-shaping",
+    id: "05",
     name: "Perfilado de cejas",
     description: "Diseño y limpieza para definir la forma de tus cejas.",
     duration: 30,
     price: 8500,
   },
   {
-    id: "eyelash-lifting",
+    id: "06",
     name: "Lifting de pestañas",
     description: "Realza tus pestañas naturales con una curvatura más abierta.",
     duration: 60,
@@ -61,13 +61,12 @@ const currencyFormatter = new Intl.NumberFormat("es-AR");
 type ServicesProps = {
   selectedServiceIds: string[];
   onToggleService: (serviceId: string) => void;
-  showHeading?: boolean;
+
 };
 
 export default function Services({
   selectedServiceIds,
   onToggleService,
-  showHeading = true,
 }: ServicesProps) {
   const selectedServices = selectedServiceIds;
   const selectedCount = selectedServices.length;
@@ -79,15 +78,9 @@ export default function Services({
   return (
     <section
       className={styles.services}
-      aria-label={showHeading ? undefined : "Servicios disponibles"}
-      aria-labelledby={showHeading ? "services-title" : undefined}
+      aria-label="Servicios disponibles"
+      aria-labelledby="services-title" 
     >
-      {showHeading && (
-        <div className={styles.heading}>
-          <h2 id="services-title">Servicios</h2>
-          <p>Podés sumar o quitar opciones</p>
-        </div>
-      )}
 
       <ul className={styles.list}>
         {services.map((service) => {

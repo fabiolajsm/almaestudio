@@ -75,11 +75,17 @@
   }
 
   .title {
-    font-size: var(--font-size-large);
+    font-size: var(--font-size-large-mobile);
     letter-spacing: -3px;
   }
 
   .description {
     max-width: 280px;
+  }
+}
+
+@media (min-width: 701px) and (max-width: 1024px) {
+  .title {
+    font-size: var(--font-size-large);
   }
 }

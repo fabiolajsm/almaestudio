@@ -4,26 +4,6 @@
   font-family: var(--font-poppins);
 }
 
-.heading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.heading h2 {
-  margin: 0;
-  font-size: var(--font-size-small);
-  font-weight: 600;
-}
-
-.heading p {
-  margin: 0;
-  color: var(--color-brown);
-  font-size: var(--font-size-small);
-}
-
 .list {
   display: grid;
   gap: 10px;
@@ -76,7 +56,7 @@
 .details {
   display: grid;
   min-width: 0;
-  gap: 4px;
+  gap: 5px;
 }
 
 .name {
@@ -86,13 +66,14 @@
 
 .description {
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   line-height: 1.4;
 }
 
 .duration {
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
+  font-style: italic;
 }
 
 .priceAndAction {
@@ -117,36 +98,35 @@
   border: 1px solid var(--color-stone);
   border-radius: 50%;
   color: var(--color-brown);
-  font-size: 14px;
+  font-size: var(--font-size-small-mobile);
 }
 
 .selected .icon {
   border-color: var(--color-ink);
-  color: var(--color-ink);
 }
 
 .selectionCount {
   margin: 14px 0 0;
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
+}
+
+@media (max-width: 1024px) {
+  .name,
+  .description,
+  .duration,
+  .price,
+  .selectionCount {
+    font-size: var(--font-size-small-mobile);
+  }
 }
 
 @media (max-width: 480px) {
-  .heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
   .service {
     padding-inline: 12px;
   }
 
   .priceAndAction {
     gap: 8px;
-  }
-
-  .price {
-    font-size: var(--font-size-small-mobile);
   }
 }
