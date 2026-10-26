@@ -20,6 +20,17 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Configurar reservas de turnos
+
+El flujo de creación de turnos usa Supabase para retener horarios y guardar comprobantes de forma privada:
+
+1. En un proyecto Supabase, ejecutá el SQL de `supabase/migrations/20261026090000_appointment_holds.sql`.
+2. Copiá `.env.example` a `.env.local` y completá la URL y la clave `service_role` del proyecto. Esa clave es solo de servidor: no la uses en variables `NEXT_PUBLIC_*`.
+3. Configurá titular y alias o CVU de la cuenta que recibe la seña. Sin esos datos el flujo no permite reservar.
+4. Reiniciá la aplicación después de cambiar las variables.
+
+Al pasar del paso de horario a los datos, la base retiene el turno durante 15 minutos. Al subir el comprobante, queda pendiente de verificación por 24 horas; después de ese plazo, otro intento de reserva libera la retención vencida. El bucket de comprobantes es privado y acepta imágenes JPG, PNG y WEBP de hasta 5 MB.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

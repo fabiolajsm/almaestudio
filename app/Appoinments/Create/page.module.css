@@ -144,6 +144,130 @@
   outline-offset: 2px;
 }
 
+.paymentStep {
+  display: grid;
+  gap: 20px;
+}
+
+.transferDetails {
+  padding: 18px;
+  border: 1px solid var(--color-stone);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-cream) 50%, transparent);
+  color: var(--color-ink);
+}
+
+.transferDetails h3,
+.transferDetails p {
+  margin: 0;
+}
+
+.transferDetails h3 {
+  font-size: var(--font-size-medium);
+}
+
+.transferDetails p {
+  margin-top: 8px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+}
+
+.transferDetails dl {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0 0;
+}
+
+.transferDetails dl div {
+  display: grid;
+  grid-template-columns: minmax(90px, auto) minmax(0, 1fr);
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-stone);
+  font-size: var(--font-size-small);
+}
+
+.transferDetails dt {
+  color: var(--color-brown);
+}
+
+.transferDetails dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  text-align: right;
+}
+
+.holdNotice,
+.confirmationMessage {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-sand) 20%, transparent);
+  color: var(--color-ink);
+  font-size: var(--font-size-small);
+  line-height: 1.5;
+}
+
+.holdNotice {
+  font-weight: 600;
+  text-align: center;
+}
+
+.confirmationMessage {
+  border: 1px solid var(--color-available);
+  background: color-mix(in srgb, var(--color-available) 8%, white);
+}
+
+.proofField {
+  gap: 8px;
+}
+
+.fileInput {
+  position: relative;
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 13px;
+  overflow: hidden;
+  border: 1px dashed var(--color-stone);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--color-cream) 50%, transparent);
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  font-weight: 400;
+}
+
+.fileInput svg {
+  flex: 0 0 auto;
+}
+
+.fileInput span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileInput input {
+  position: absolute;
+  inset: 0;
+  min-height: 100%;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.fileInput:focus-within {
+  outline: 2px solid var(--color-brown);
+  outline-offset: 2px;
+}
+
+.proofHelp {
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  font-weight: 400;
+}
+
 .stepActions {
   display: flex;
   justify-content: flex-end;
@@ -206,6 +330,10 @@
   line-height: 1.5;
 }
 
+.formMessage[role="alert"] {
+  color: #8a2f2f;
+}
+
 @media (max-width: 1024px) {
   .step,
   .stepKicker,
@@ -217,6 +345,17 @@
 
   .stepTitle {
     font-size: var(--font-size-large-mobile);
+  }
+
+  .transferDetails h3 {
+    font-size: var(--font-size-medium-mobile);
+  }
+
+  .transferDetails p,
+  .transferDetails dl div,
+  .holdNotice,
+  .confirmationMessage {
+    font-size: var(--font-size-small-mobile);
   }
 }
 
