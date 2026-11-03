@@ -1,10 +1,15 @@
 "use client";
 
-import { FiRefreshCw } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import {
+  isAppointmentTimeWithinBusinessHours,
+  maximumAppointmentDuration,
+} from "@/app/Appoinments/appointmentCatalog";
 import styles from "./AppointmentSchedule.module.css";
 
 type AppointmentScheduleProps = {
   today: string;
+  serviceDuration: number;
   selectedDate: string | null;
   selectedTime: string | null;
   onSelectDate: (date: string) => void;
@@ -36,14 +41,35 @@ const weekdayNames = [
   "viernes",
   "sábado",
 ];
-const timeSlots = [
-  { time: "10:00", unavailable: false },
-  { time: "11:30", unavailable: true },
-  { time: "14:00", unavailable: false },
-  { time: "15:30", unavailable: false },
-  { time: "17:00", unavailable: true },
-  { time: "18:30", unavailable: false },
-];
+
+type AvailabilityState =
+  | {
+      key: string;
+      status: "success";
+      availableTimes: Record<string, string[]>;
+    }
+  | { key: string; status: "error"; message: string };
+
+function isAvailabilityMap(
+  value: unknown,
+  durationMinutes: number,
+): value is Record<string, string[]> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every(
+      (times) =>
+        Array.isArray(times) &&
+        times.length <= 1 &&
+        times.every(
+          (time) =>
+            typeof time === "string" &&
+            isAppointmentTimeWithinBusinessHours(time, durationMinutes),
+        ),
+    )
+  );
+}
 
 function getDateKey(date: Date) {
   const year = date.getUTCFullYear();
@@ -71,11 +97,17 @@ function CalendarMonth({
   month,
   selectedDate,
   today,
+  availableTimes,
+  isLoading,
+  hasError,
   onSelectDate,
 }: {
   month: Date;
   selectedDate: string | null;
   today: string;
+  availableTimes: Record<string, string[]> | null;
+  isLoading: boolean;
+  hasError: boolean;
   onSelectDate: (date: string) => void;
 }) {
   const year = month.getUTCFullYear();
@@ -103,7 +135,12 @@ function CalendarMonth({
         {days.map((day) => {
           const date = new Date(Date.UTC(year, monthIndex, day));
           const dateKey = getDateKey(date);
-          const isUnavailable = dateKey < today || date.getUTCDay() === 0;
+          const isUnavailable =
+            dateKey < today ||
+            date.getUTCDay() === 0 ||
+            isLoading ||
+            hasError ||
+            !availableTimes?.[dateKey]?.length;
           const isSelected = dateKey === selectedDate;
 
           return (
@@ -127,6 +164,7 @@ function CalendarMonth({
 
 export default function AppointmentSchedule({
   today,
+  serviceDuration,
   selectedDate,
   selectedTime,
   onSelectDate,
@@ -147,6 +185,90 @@ export default function AppointmentSchedule({
         ),
       ),
   );
+  const lastVisibleMonth = visibleMonths[visibleMonths.length - 1];
+  const availabilityEndDate = getDateKey(
+    new Date(
+      Date.UTC(
+        lastVisibleMonth.getUTCFullYear(),
+        lastVisibleMonth.getUTCMonth() + 1,
+        0,
+      ),
+    ),
+  );
+  const availabilityKey = `${today}:${availabilityEndDate}:${serviceDuration}`;
+  const [availabilityState, setAvailabilityState] =
+    useState<AvailabilityState | null>(null);
+  const currentAvailabilityState =
+    availabilityState?.key === availabilityKey ? availabilityState : null;
+  const availability =
+    currentAvailabilityState?.status === "success"
+      ? currentAvailabilityState.availableTimes
+      : null;
+  const availabilityError =
+    currentAvailabilityState?.status === "error"
+      ? currentAvailabilityState.message
+      : null;
+  const isLoading =
+    serviceDuration > 0 &&
+    serviceDuration <= maximumAppointmentDuration &&
+    currentAvailabilityState === null;
+
+  useEffect(() => {
+    if (
+      serviceDuration <= 0 ||
+      serviceDuration > maximumAppointmentDuration
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    fetch(
+      `/api/appointments/availability?start=${today}&end=${availabilityEndDate}&duration=${serviceDuration}`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (response) => {
+        const result = (await response.json()) as {
+          error?: unknown;
+          availableTimes?: unknown;
+        };
+
+        if (!response.ok) {
+          throw new Error(
+            typeof result.error === "string"
+              ? result.error
+              : "No se pudo consultar la agenda.",
+          );
+        }
+
+        if (!isAvailabilityMap(result.availableTimes, serviceDuration)) {
+          throw new Error("Google Calendar devolvió una disponibilidad inválida.");
+        }
+
+        setAvailabilityState({
+          key: availabilityKey,
+          status: "success",
+          availableTimes: result.availableTimes,
+        });
+      })
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setAvailabilityState({
+          key: availabilityKey,
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "No se pudo consultar la agenda. Recargá la página para intentar de nuevo.",
+        });
+      });
+
+    return () => controller.abort();
+  }, [availabilityEndDate, availabilityKey, serviceDuration, today]);
+
   const formattedSelectedDate = selectedDate
     ? getAccessibleDate(getDateFromKey(selectedDate))
     : null;
@@ -170,6 +292,9 @@ export default function AppointmentSchedule({
             month={month}
             selectedDate={selectedDate}
             today={today}
+            availableTimes={availability}
+            isLoading={isLoading}
+            hasError={Boolean(availabilityError)}
             onSelectDate={(date) => {
               onSelectDate(date);
               onSelectTime("");
@@ -179,8 +304,8 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        <FiRefreshCw aria-hidden="true" />
-        Disponibilidad de ejemplo · dejamos 15 min entre clientas
+        Atención de lunes a sábado, de 9 a 22. El siguiente horario se calcula
+        según la duración de los servicios y deja 15 min entre turnos.
       </p>
 
       <div className={styles.timeHeading}>
@@ -198,29 +323,66 @@ export default function AppointmentSchedule({
       </div>
 
       {selectedDate ? (
-        <div className={styles.timeSlots} aria-label="Horarios disponibles">
-          {timeSlots.map(({ time, unavailable }) => (
-            <button
-              key={time}
-              type="button"
-              className={`${styles.timeSlot} ${unavailable ? styles.unavailable : styles.availableTime} ${selectedTime === time ? styles.selectedTime : ""}`}
-              aria-pressed={!unavailable && selectedTime === time}
-              disabled={unavailable}
-              onClick={() => onSelectTime(time)}
-            >
-              {time}
-              {unavailable && <span className={styles.srOnly}> - ocupado</span>}
-              {unavailable && (
-                <span className={styles.unavailableLabel} aria-hidden="true">
-                  ocupado
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        availabilityError ? (
+          <p className={styles.chooseDate} role="alert">
+            {availabilityError}
+          </p>
+        ) : isLoading ? (
+          <p className={styles.chooseDate} role="status">
+            Consultando disponibilidad...
+          </p>
+        ) : serviceDuration <= 0 ? (
+          <p className={styles.chooseDate}>
+            Elegí al menos un servicio para consultar los horarios.
+          </p>
+        ) : serviceDuration > maximumAppointmentDuration ? (
+          <p className={styles.chooseDate} role="alert">
+            La duración total no puede superar las 5 horas.
+          </p>
+        ) : (
+          <div className={styles.timeSlots} aria-label="Horarios disponibles">
+            {(availability?.[selectedDate] ?? []).map((time) => {
+              const isUnavailable = !availability?.[selectedDate]?.includes(time);
+
+              return (
+                <button
+                  key={time}
+                  type="button"
+                  className={`${styles.timeSlot} ${isUnavailable ? styles.unavailable : styles.availableTime} ${selectedTime === time ? styles.selectedTime : ""}`}
+                  aria-pressed={!isUnavailable && selectedTime === time}
+                  disabled={isUnavailable}
+                  onClick={() => onSelectTime(time)}
+                >
+                  {time}
+                  {isUnavailable && (
+                    <span className={styles.srOnly}> - ocupado</span>
+                  )}
+                  {isUnavailable && (
+                    <span className={styles.unavailableLabel} aria-hidden="true">
+                      ocupado
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+            {availability?.[selectedDate]?.length === 0 && (
+              <p className={styles.chooseDate}>
+                No hay horarios disponibles para este día.
+              </p>
+            )}
+          </div>
+        )
       ) : (
         <p className={styles.chooseDate}>
-          Elegí un día para consultar los horarios.
+          {availabilityError
+            ? availabilityError
+            : isLoading
+              ? "Consultando disponibilidad..."
+              : serviceDuration <= 0
+                ? "Elegí al menos un servicio para consultar los horarios."
+                : serviceDuration > maximumAppointmentDuration
+                  ? "La duración total no puede superar las 5 horas."
+                : "Elegí un día para consultar los horarios."}
         </p>
       )}
       {formattedSelectedDate && (

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { FiCheck, FiMapPin, FiX } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
+import { maximumAppointmentDuration } from "../appointmentCatalog";
 import SiteHeader from "../../SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Services, { services } from "@/components/Services";
@@ -30,7 +31,7 @@ function formatAppointmentDate(dateKey: string) {
   return `${weekdays[date.getUTCDay()]} ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
 }
 
-const initialServiceIds = ["semi-permanent-polish", "eyebrow-shaping"];
+const initialServiceIds = ["01", "05"];
 
 export default function ModifyAppointmentClient({
   today,
@@ -42,7 +43,7 @@ export default function ModifyAppointmentClient({
   const [selectedServiceIds, setSelectedServiceIds] =
     useState<string[]>(initialServiceIds);
   const [selectedDate, setSelectedDate] = useState(initialDate);
-  const [selectedTime, setSelectedTime] = useState("15:30");
+  const [selectedTime, setSelectedTime] = useState("");
   const [savedServiceIds, setSavedServiceIds] =
     useState<string[]>(initialServiceIds);
   const [savedDate, setSavedDate] = useState(initialDate);
@@ -56,9 +57,17 @@ export default function ModifyAppointmentClient({
     (total, service) => total + service.duration,
     0,
   );
+  const selectedDuration = services
+    .filter((service) => selectedServiceIds.includes(service.id))
+    .reduce((total, service) => total + service.duration, 0);
   const serviceNames = savedServices.map((service) => service.name).join(" + ");
 
   function saveChanges() {
+    if (selectedDuration > maximumAppointmentDuration) {
+      setMessage("La duración total no puede superar las 5 horas.");
+      return;
+    }
+
     if (selectedServiceIds.length === 0 || !selectedDate || !selectedTime) {
       setMessage("Elegí al menos un servicio, un día y un horario.");
       return;
@@ -119,7 +128,7 @@ export default function ModifyAppointmentClient({
 
           <p className={styles.location}>
             <FiMapPin aria-hidden="true" />
-            Thames 1684, Palermo · Martes a sábado
+            Thames 1684, Palermo · Lunes a sábado, 9 a 22 h
           </p>
 
           <div className={styles.reservationActions}>
@@ -153,6 +162,7 @@ export default function ModifyAppointmentClient({
                     ? currentIds.filter((id) => id !== serviceId)
                     : [...currentIds, serviceId],
                 );
+                setSelectedTime("");
                 setMessage("");
               }}
             />
@@ -162,6 +172,7 @@ export default function ModifyAppointmentClient({
             <h3>Fecha y horario</h3>
             <AppointmentSchedule
               today={today}
+              serviceDuration={selectedDuration}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
               onSelectDate={(date) => {

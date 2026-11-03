@@ -4,7 +4,10 @@ import { useEffect, useState } from "react";
 import type { SubmitEvent } from "react";
 import { getArgentinaDateKey } from "../appointmentDates";
 
-import { appointmentDeposit } from "../appointmentCatalog";
+import {
+  appointmentDeposit,
+  maximumAppointmentDuration,
+} from "../appointmentCatalog";
 import { FiArrowLeft, FiArrowRight, FiCheck, FiUpload } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../SiteHeader";
@@ -54,6 +57,10 @@ export default function CreateAppointmentPage() {
   const [formMessage, setFormMessage] = useState("");
   const selectedServices = services.filter((service) =>
     selectedServiceIds.includes(service.id),
+  );
+  const selectedServicesDuration = selectedServices.reduce(
+    (total, service) => total + service.duration,
+    0,
   );
 
   const stepContent = [
@@ -161,23 +168,36 @@ export default function CreateAppointmentPage() {
             <p className={styles.stepDescription}>{stepContent.description}</p>
 
             {currentStep === 0 && (
-              <Services
-                selectedServiceIds={selectedServiceIds}
-                onToggleService={toggleService}
-              />
+              <>
+                <Services
+                  selectedServiceIds={selectedServiceIds}
+                  onToggleService={toggleService}
+                />
+                {selectedServicesDuration > maximumAppointmentDuration && (
+                  <p className={styles.formMessage} role="alert">
+                    La duración total no puede superar las 5 horas. Quitá un
+                    servicio para continuar.
+                  </p>
+                )}
+              </>
             )}
 
             {currentStep === 1 &&
               (today ? (
                 <AppointmentSchedule
                   today={today}
+                  serviceDuration={selectedServicesDuration}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
                   onSelectDate={(date) => {
                     setSelectedDate(date);
                     setSelectedTime(null);
+                    setFormMessage("");
                   }}
-                  onSelectTime={(time) => setSelectedTime(time || null)}
+                  onSelectTime={(time) => {
+                    setSelectedTime(time || null);
+                    setFormMessage("");
+                  }}
                   showHeading={false}
                 />
               ) : (
@@ -322,7 +342,9 @@ export default function CreateAppointmentPage() {
                   className={styles.primaryButton}
                   disabled={
                     isBusy ||
-                    (currentStep === 0 && selectedServiceIds.length === 0) ||
+                    (currentStep === 0 &&
+                      (selectedServiceIds.length === 0 ||
+                        selectedServicesDuration > maximumAppointmentDuration)) ||
                     (currentStep === 1 &&
                       (!selectedDate ||
                         !selectedTime ||
@@ -392,10 +414,15 @@ export default function CreateAppointmentPage() {
         ? currentServiceIds.filter((id) => id !== serviceId)
         : [...currentServiceIds, serviceId],
     );
+    setSelectedTime(null);
   }
 
   async function continueToNextStep() {
-    if (currentStep === 0 && selectedServiceIds.length > 0) {
+    if (
+      currentStep === 0 &&
+      selectedServiceIds.length > 0 &&
+      selectedServicesDuration <= maximumAppointmentDuration
+    ) {
       setToday(getArgentinaDateKey(new Date()));
       setFormMessage("");
       setCurrentStep(1);

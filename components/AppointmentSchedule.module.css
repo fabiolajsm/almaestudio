@@ -111,11 +111,6 @@
   line-height: 1.5;
 }
 
-.availabilityNote svg {
-  flex: 0 0 auto;
-  color: var(--color-sand);
-}
-
 .timeHeading {
   margin-bottom: 12px;
 }

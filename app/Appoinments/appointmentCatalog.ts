@@ -51,11 +51,40 @@ export const appointmentServices: AppointmentService[] = [
   },
 ];
 
-export const availableAppointmentTimes = [
-  "10:00",
-  "14:00",
-  "15:30",
-  "18:30",
-];
+export const maximumAppointmentDuration = 300;
+
+export const appointmentWorkingDays = [1, 2, 3, 4, 5, 6];
+export const appointmentOpeningTime = 9 * 60;
+export const appointmentClosingTime = 22 * 60;
+export const appointmentBufferMinutes = 15;
+
+export function isAppointmentWorkingDay(dateKey: string) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+
+  return appointmentWorkingDays.includes(weekday);
+}
+
+export function isAppointmentTimeWithinBusinessHours(
+  time: string,
+  durationMinutes: number,
+) {
+  if (
+    !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+    !Number.isInteger(durationMinutes) ||
+    durationMinutes < 15 ||
+    durationMinutes > maximumAppointmentDuration
+  ) {
+    return false;
+  }
+
+  const [hour, minute] = time.split(":").map(Number);
+  const start = hour * 60 + minute;
+
+  return (
+    start >= appointmentOpeningTime &&
+    start + durationMinutes <= appointmentClosingTime
+  );
+}
 
 export const appointmentDeposit = 5000;

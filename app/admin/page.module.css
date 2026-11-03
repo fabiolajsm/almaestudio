@@ -1,0 +1,284 @@
+.page {
+  width: min(100% - 32px, 960px);
+  margin: 0 auto;
+  padding: clamp(32px, 7vw, 72px) 0;
+  color: var(--color-ink);
+}
+
+.loginCard {
+  width: min(100%, 440px);
+  margin: 10vh auto 0;
+  padding: clamp(24px, 5vw, 40px);
+  border: 1px solid var(--color-stone);
+  border-radius: 20px;
+  background: color-mix(white 80%, transparent);
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h1,
+.loginCard h1 {
+  margin: 0;
+  font: 500 clamp(36px, 7vw, 52px) var(--font-seasons);
+  letter-spacing: -1px;
+}
+
+.intro {
+  margin: 8px 0 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+  line-height: 1.6;
+}
+
+.loginForm {
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.loginForm label {
+  font-size: var(--font-size-small-mobile);
+  font-weight: 600;
+}
+
+.loginForm input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-stone);
+  border-radius: 10px;
+  background: white;
+  color: var(--color-ink);
+  font: inherit;
+}
+
+.loginForm input:focus-visible,
+.loginForm button:focus-visible,
+.secondaryButton:focus-visible,
+.filters button:focus-visible,
+.cardActions button:focus-visible,
+.proofLink:focus-visible {
+  outline: 2px solid var(--color-brown);
+  outline-offset: 3px;
+}
+
+.loginForm button,
+.confirmButton,
+.cancelButton,
+.secondaryButton {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border: 1px solid var(--color-ink);
+  border-radius: 10px;
+  cursor: pointer;
+  font: 500 var(--font-size-small-mobile) var(--font-poppins);
+}
+
+.loginForm button,
+.confirmButton {
+  background: var(--color-ink);
+  color: white;
+}
+
+.loginForm button:disabled,
+.cardActions button:disabled,
+.secondaryButton:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.message {
+  margin: 18px 0 0;
+  color: #8d342d;
+  font-size: var(--font-size-small-mobile);
+  line-height: 1.5;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.headerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.secondaryButton {
+  border-color: var(--color-stone);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 32px 0 18px;
+}
+
+.filters button {
+  min-height: 38px;
+  padding: 7px 14px;
+  border: 1px solid var(--color-stone);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-brown);
+  cursor: pointer;
+  font: 500 var(--font-size-small-mobile) var(--font-poppins);
+}
+
+.filters .activeFilter {
+  border-color: var(--color-ink);
+  background: var(--color-ink);
+  color: white;
+}
+
+.appointmentList {
+  display: grid;
+  gap: 14px;
+}
+
+.appointmentCard {
+  padding: clamp(18px, 3vw, 26px);
+  border: 1px solid var(--color-stone);
+  border-radius: 16px;
+  background: color-mix(white 80%, transparent);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.appointmentDate {
+  margin: 0 0 4px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  text-transform: capitalize;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  font-size: var(--font-size-medium-mobile);
+  font-weight: 600;
+}
+
+.status {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pending {
+  background: #f7edda;
+  color: #76521a;
+}
+
+.confirmed {
+  background: #e5f1e7;
+  color: #2f7040;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 20px;
+  margin: 20px 0 0;
+}
+
+.details div {
+  min-width: 0;
+}
+
+.details dt {
+  margin-bottom: 4px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
+.details dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-small-mobile);
+  font-weight: 500;
+}
+
+.details a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.proofLink {
+  display: inline-flex;
+  margin-top: 18px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-stone);
+}
+
+.cancelButton {
+  border-color: var(--color-stone);
+  background: transparent;
+  color: var(--color-ink);
+}
+
+.actionStatus {
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
+.emptyState {
+  margin: 24px 0;
+  padding: 28px;
+  border: 1px dashed var(--color-stone);
+  border-radius: 14px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .details {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cardHeader {
+    flex-direction: column;
+  }
+}

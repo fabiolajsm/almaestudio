@@ -1,12 +1,18 @@
 import {
+  isAppointmentWorkingDay,
+  isAppointmentTimeWithinBusinessHours,
   appointmentServices,
-  availableAppointmentTimes,
+  maximumAppointmentDuration,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import {
   callSupabaseRpc,
   SupabaseRequestError,
 } from "@/lib/supabaseAdmin";
+import {
+  GoogleCalendarIntegrationError,
+  isAppointmentSlotAvailable,
+} from "@/lib/googleCalendar";
 
 type HoldRequest = {
   date?: unknown;
@@ -35,7 +41,7 @@ function isValidDate(date: string) {
     !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === date &&
     date >= getArgentinaDateKey(new Date()) &&
-    parsed.getUTCDay() !== 0
+    isAppointmentWorkingDay(date)
   );
 }
 
@@ -65,9 +71,9 @@ export async function POST(request: Request) {
   const date = typeof body.date === "string" ? body.date : "";
   const time = typeof body.time === "string" ? body.time : "";
 
-  if (!isValidDate(date) || !availableAppointmentTimes.includes(time)) {
+  if (!isValidDate(date)) {
     return Response.json(
-      { error: "Elegí una fecha y un horario disponibles." },
+      { error: "Elegí una fecha disponible." },
       { status: 400 },
     );
   }
@@ -100,12 +106,33 @@ export async function POST(request: Request) {
     (total, service) => total + service.duration,
     0,
   );
+  if (duration > maximumAppointmentDuration) {
+    return Response.json(
+      { error: "La duración total del turno no puede superar las 5 horas." },
+      { status: 400 },
+    );
+  }
+
+  if (!isAppointmentTimeWithinBusinessHours(time, duration)) {
+    return Response.json(
+      { error: "El horario no está dentro del horario de atención." },
+      { status: 400 },
+    );
+  }
+
   const totalPrice = selectedServices.reduce(
     (total, service) => total + service.price,
     0,
   );
 
   try {
+    if (!(await isAppointmentSlotAvailable(date, time, duration))) {
+      return Response.json(
+        { error: "Ese horario ya no está disponible. Elegí otro, por favor." },
+        { status: 409 },
+      );
+    }
+
     const [hold] = await callSupabaseRpc<HoldResult[]>(
       "create_appointment_hold",
       {
@@ -123,6 +150,22 @@ export async function POST(request: Request) {
 
     return Response.json(hold, { status: 201 });
   } catch (error) {
+    if (error instanceof GoogleCalendarIntegrationError) {
+      if (error.code === "unavailable") {
+        console.error("No se pudo verificar la agenda antes de retener el turno.", error);
+      }
+
+      return Response.json(
+        {
+          error:
+            error.code === "not_configured"
+              ? "La conexión con Google Calendar todavía no está configurada."
+              : "No se pudo verificar la agenda. Intentá nuevamente.",
+        },
+        { status: 503 },
+      );
+    }
+
     if (error instanceof SupabaseRequestError && error.code === "23P01") {
       return Response.json(
         { error: "Ese horario acaba de ser reservado. Elegí otro, por favor." },
