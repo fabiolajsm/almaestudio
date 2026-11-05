@@ -3,6 +3,7 @@ import {
   appointmentClosingTime,
   appointmentBufferMinutes,
   appointmentOpeningTime,
+  appointmentServices,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
 } from "@/app/Appoinments/appointmentCatalog";
@@ -19,6 +20,13 @@ type BusyInterval = {
   start: number;
   end: number;
 };
+
+export type AppointmentTimeSlot = {
+  time: string;
+  status: "available" | "busy" | "past";
+};
+
+type AppointmentTimeSlotsByDate = Record<string, AppointmentTimeSlot[]>;
 
 type BusyReservation = {
   appointment_date: string;
@@ -260,11 +268,11 @@ function getTimeKey(timestamp: number) {
   return argentinaTime;
 }
 
-function getNextSequentialAppointmentTime(
+function getAppointmentTimeSlots(
   dateKey: string,
   durationMinutes: number,
   busyIntervals: BusyInterval[],
-) {
+): AppointmentTimeSlot[] {
   const openingTime = getLocalDateTime(
     dateKey,
     `${String(Math.floor(appointmentOpeningTime / 60)).padStart(2, "0")}:${String(appointmentOpeningTime % 60).padStart(2, "0")}`,
@@ -274,33 +282,109 @@ function getNextSequentialAppointmentTime(
     `${String(Math.floor(appointmentClosingTime / 60)).padStart(2, "0")}:${String(appointmentClosingTime % 60).padStart(2, "0")}`,
   ).getTime();
   const now = Date.now();
-  const earliestStart =
-    dateKey === getArgentinaDateKey(new Date()) && now > openingTime
+  const firstFutureStart =
+    dateKey === getArgentinaDateKey(new Date()) && now >= openingTime
       ? openingTime +
-        Math.ceil((now - openingTime) / slotBufferMilliseconds) *
+        (Math.floor((now - openingTime) / slotBufferMilliseconds) + 1) *
           slotBufferMilliseconds
       : openingTime;
+  const slots: AppointmentTimeSlot[] = [];
 
   for (
-    let appointmentStart = earliestStart;
+    let appointmentStart = openingTime;
     appointmentStart + durationMinutes * 60 * 1000 <= closingTime;
+    appointmentStart += slotBufferMilliseconds
   ) {
     const appointmentEnd =
       appointmentStart + durationMinutes * 60 * 1000;
-    const conflict = busyIntervals.find(
+    const isBusy = busyIntervals.some(
       (busy) =>
         appointmentStart < busy.end + slotBufferMilliseconds &&
         appointmentEnd > busy.start - slotBufferMilliseconds,
     );
 
-    if (!conflict) {
-      return getTimeKey(appointmentStart);
-    }
-
-    appointmentStart = conflict.end + slotBufferMilliseconds;
+    slots.push({
+      time: getTimeKey(appointmentStart),
+      status: isBusy
+        ? "busy"
+        : appointmentStart < firstFutureStart
+          ? "past"
+          : "available",
+    });
   }
 
-  return null;
+  return slots;
+}
+
+function getAvailabilityForIntervals(
+  startDate: string,
+  endDate: string,
+  durationMinutes: number,
+  busyIntervals: BusyInterval[],
+) {
+  const timeSlots: AppointmentTimeSlotsByDate = {};
+  const hasShorterServiceAvailability: Record<string, boolean> = {};
+
+  for (
+    let date = new Date(`${startDate}T00:00:00.000Z`);
+    date <= new Date(`${endDate}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + 1)
+  ) {
+    const dateKey = date.toISOString().slice(0, 10);
+    const isWorkingDay = isAppointmentWorkingDay(dateKey);
+    timeSlots[dateKey] = isWorkingDay
+      ? getAppointmentTimeSlots(
+          dateKey,
+          durationMinutes,
+          busyIntervals,
+        )
+      : [];
+    hasShorterServiceAvailability[dateKey] =
+      isWorkingDay &&
+      appointmentServices.some(
+        (service) =>
+          service.duration < durationMinutes &&
+          getAppointmentTimeSlots(
+            dateKey,
+            service.duration,
+            busyIntervals,
+          ).some((slot) => slot.status === "available"),
+      );
+  }
+
+  return { timeSlots, hasShorterServiceAvailability };
+}
+
+export async function getGoogleCalendarAvailabilityByDate(
+  startDate: string,
+  endDate: string,
+  durationMinutes: number,
+) {
+  const start = getLocalDateTime(startDate, "00:00");
+  const end = getLocalDateTime(getNextDateKey(endDate), "00:00");
+  const busyIntervals = await getCalendarBusyIntervals(start, end);
+  if (process.env.NODE_ENV === "development") {
+    console.info(
+      "Google Calendar busy intervals:",
+      busyIntervals.map(({ start: busyStart, end: busyEnd }) => ({
+        start: `${getArgentinaDateKey(new Date(busyStart))} ${getTimeKey(busyStart)}`,
+        end: `${getArgentinaDateKey(new Date(busyEnd))} ${getTimeKey(busyEnd)}`,
+      })),
+    );
+  }
+
+  return {
+    busyIntervals: busyIntervals.map(({ start: busyStart, end: busyEnd }) => ({
+      start: `${getArgentinaDateKey(new Date(busyStart))} ${getTimeKey(busyStart)}`,
+      end: `${getArgentinaDateKey(new Date(busyEnd))} ${getTimeKey(busyEnd)}`,
+    })),
+    ...getAvailabilityForIntervals(
+      startDate,
+      endDate,
+      durationMinutes,
+      busyIntervals,
+    ),
+  };
 }
 
 export async function getAvailableTimesByDate(
@@ -316,25 +400,13 @@ export async function getAvailableTimesByDate(
     startDate,
     endDate,
   );
-  const availableTimesByDate: Record<string, string[]> = {};
 
-  for (
-    let date = new Date(`${startDate}T00:00:00.000Z`);
-    date <= new Date(`${endDate}T00:00:00.000Z`);
-    date.setUTCDate(date.getUTCDate() + 1)
-  ) {
-    const dateKey = date.toISOString().slice(0, 10);
-    const nextTime = isAppointmentWorkingDay(dateKey)
-      ? getNextSequentialAppointmentTime(
-          dateKey,
-          durationMinutes,
-          busyIntervals,
-        )
-      : null;
-    availableTimesByDate[dateKey] = nextTime ? [nextTime] : [];
-  }
-
-  return availableTimesByDate;
+  return getAvailabilityForIntervals(
+    startDate,
+    endDate,
+    durationMinutes,
+    busyIntervals,
+  );
 }
 
 export async function isAppointmentSlotAvailable(
@@ -365,8 +437,19 @@ export async function isAppointmentSlotAvailable(
     date,
   );
 
-  return (
-    getNextSequentialAppointmentTime(date, durationMinutes, busyIntervals) ===
-    time
+  console.log(
+  "Horarios ocupados en Google Calendar:",
+  busyIntervals.map(({ start, end }) => ({
+    inicio: new Date(start).toLocaleString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    }),
+    fin: new Date(end).toLocaleString("es-AR", {
+      timeZone: "America/Argentina/Buenos_Aires",
+    }),
+  })),
+);
+
+  return getAppointmentTimeSlots(date, durationMinutes, busyIntervals).some(
+    (slot) => slot.time === time && slot.status === "available",
   );
 }

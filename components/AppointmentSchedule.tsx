@@ -5,6 +5,7 @@ import {
   isAppointmentTimeWithinBusinessHours,
   maximumAppointmentDuration,
 } from "@/app/Appoinments/appointmentCatalog";
+import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
 import styles from "./AppointmentSchedule.module.css";
 
 type AppointmentScheduleProps = {
@@ -46,27 +47,53 @@ type AvailabilityState =
   | {
       key: string;
       status: "success";
-      availableTimes: Record<string, string[]>;
+      timeSlots: Record<string, AppointmentTimeSlot[]>;
+      hasShorterServiceAvailability: Record<string, boolean>;
     }
   | { key: string; status: "error"; message: string };
 
 function isAvailabilityMap(
   value: unknown,
   durationMinutes: number,
-): value is Record<string, string[]> {
+): value is Record<string, AppointmentTimeSlot[]> {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.values(value).every((slots) => {
+      if (!Array.isArray(slots)) {
+        return false;
+      }
+
+      const seenTimes = new Set<string>();
+      return slots.every((slot) => {
+        if (
+          !slot ||
+          typeof slot !== "object" ||
+          typeof slot.time !== "string" ||
+          !["available", "busy", "past"].includes(slot.status) ||
+          !isAppointmentTimeWithinBusinessHours(slot.time, durationMinutes) ||
+          seenTimes.has(slot.time)
+        ) {
+          return false;
+        }
+
+        seenTimes.add(slot.time);
+        return true;
+      });
+    })
+  );
+}
+
+function isShorterServiceAvailabilityMap(
+  value: unknown,
+): value is Record<string, boolean> {
   return (
     value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) &&
     Object.values(value).every(
-      (times) =>
-        Array.isArray(times) &&
-        times.length <= 1 &&
-        times.every(
-          (time) =>
-            typeof time === "string" &&
-            isAppointmentTimeWithinBusinessHours(time, durationMinutes),
-        ),
+      (hasAvailability) => typeof hasAvailability === "boolean",
     )
   );
 }
@@ -97,7 +124,8 @@ function CalendarMonth({
   month,
   selectedDate,
   today,
-  availableTimes,
+  timeSlots,
+  hasShorterServiceAvailability,
   isLoading,
   hasError,
   onSelectDate,
@@ -105,7 +133,8 @@ function CalendarMonth({
   month: Date;
   selectedDate: string | null;
   today: string;
-  availableTimes: Record<string, string[]> | null;
+  timeSlots: Record<string, AppointmentTimeSlot[]> | null;
+  hasShorterServiceAvailability: Record<string, boolean> | null;
   isLoading: boolean;
   hasError: boolean;
   onSelectDate: (date: string) => void;
@@ -140,7 +169,8 @@ function CalendarMonth({
             date.getUTCDay() === 0 ||
             isLoading ||
             hasError ||
-            !availableTimes?.[dateKey]?.length;
+            (!timeSlots?.[dateKey]?.some((slot) => slot.status === "available") &&
+              !hasShorterServiceAvailability?.[dateKey]);
           const isSelected = dateKey === selectedDate;
 
           return (
@@ -202,12 +232,29 @@ export default function AppointmentSchedule({
     availabilityState?.key === availabilityKey ? availabilityState : null;
   const availability =
     currentAvailabilityState?.status === "success"
-      ? currentAvailabilityState.availableTimes
+      ? currentAvailabilityState.timeSlots
+      : null;
+  const shorterServiceAvailability =
+    currentAvailabilityState?.status === "success"
+      ? currentAvailabilityState.hasShorterServiceAvailability
       : null;
   const availabilityError =
     currentAvailabilityState?.status === "error"
       ? currentAvailabilityState.message
       : null;
+  const hasAvailabilityForSelectedDuration = Object.values(
+    availability ?? {},
+  ).some((slots) => slots.some((slot) => slot.status === "available"));
+  const hasShorterServiceAvailabilityInRange = Object.values(
+    shorterServiceAvailability ?? {},
+  ).some(Boolean);
+  const shouldShowShorterServiceNotice =
+    selectedDate && availability
+      ? !availability[selectedDate]?.some(
+          (slot) => slot.status === "available",
+        ) && Boolean(shorterServiceAvailability?.[selectedDate])
+      : !hasAvailabilityForSelectedDuration &&
+        hasShorterServiceAvailabilityInRange;
   const isLoading =
     serviceDuration > 0 &&
     serviceDuration <= maximumAppointmentDuration &&
@@ -230,7 +277,8 @@ export default function AppointmentSchedule({
       .then(async (response) => {
         const result = (await response.json()) as {
           error?: unknown;
-          availableTimes?: unknown;
+          timeSlots?: unknown;
+          hasShorterServiceAvailability?: unknown;
         };
 
         if (!response.ok) {
@@ -241,14 +289,21 @@ export default function AppointmentSchedule({
           );
         }
 
-        if (!isAvailabilityMap(result.availableTimes, serviceDuration)) {
+        if (
+          !isAvailabilityMap(result.timeSlots, serviceDuration) ||
+          !isShorterServiceAvailabilityMap(
+            result.hasShorterServiceAvailability,
+          )
+        ) {
           throw new Error("Google Calendar devolvió una disponibilidad inválida.");
         }
 
         setAvailabilityState({
           key: availabilityKey,
           status: "success",
-          availableTimes: result.availableTimes,
+          timeSlots: result.timeSlots,
+          hasShorterServiceAvailability:
+            result.hasShorterServiceAvailability,
         });
       })
       .catch((error: unknown) => {
@@ -273,6 +328,8 @@ export default function AppointmentSchedule({
     ? getAccessibleDate(getDateFromKey(selectedDate))
     : null;
 
+    console.log(availability, "avavavvavava")
+
   return (
     <section
       className={styles.schedule}
@@ -292,7 +349,8 @@ export default function AppointmentSchedule({
             month={month}
             selectedDate={selectedDate}
             today={today}
-            availableTimes={availability}
+            timeSlots={availability}
+            hasShorterServiceAvailability={shorterServiceAvailability}
             isLoading={isLoading}
             hasError={Boolean(availabilityError)}
             onSelectDate={(date) => {
@@ -304,22 +362,21 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        Atención de lunes a sábado, de 9 a 22. El siguiente horario se calcula
-        según la duración de los servicios y deja 15 min entre turnos.
+        Atención de lunes a sábado, de 9 a 22hs. Los inicios se muestran cada
+        15 min según la duración del servicio. Solo se muestran horarios
+        disponibles.
       </p>
+
+      {shouldShowShorterServiceNotice && (
+        <p className={styles.chooseDate} role="status">
+          Hay turnos disponibles para servicios más cortos, pero no alcanzan
+          para todos los servicios que elegiste. Probá quitando algún servicio
+          o eligiendo otro día.
+        </p>
+      )}
 
       <div className={styles.timeHeading}>
         <h3>Horarios</h3>
-        <ul className={styles.legend} aria-label="Referencias de horarios">
-          <li>
-            <span className={styles.availableDot} aria-hidden="true" />
-            Disponible
-          </li>
-          <li>
-            <span className={styles.unavailableDot} aria-hidden="true" />
-            Ocupado
-          </li>
-        </ul>
       </div>
 
       {selectedDate ? (
@@ -340,37 +397,31 @@ export default function AppointmentSchedule({
             La duración total no puede superar las 5 horas.
           </p>
         ) : (
-          <div className={styles.timeSlots} aria-label="Horarios disponibles">
-            {(availability?.[selectedDate] ?? []).map((time) => {
-              const isUnavailable = !availability?.[selectedDate]?.includes(time);
-
-              return (
-                <button
-                  key={time}
-                  type="button"
-                  className={`${styles.timeSlot} ${isUnavailable ? styles.unavailable : styles.availableTime} ${selectedTime === time ? styles.selectedTime : ""}`}
-                  aria-pressed={!isUnavailable && selectedTime === time}
-                  disabled={isUnavailable}
-                  onClick={() => onSelectTime(time)}
-                >
-                  {time}
-                  {isUnavailable && (
-                    <span className={styles.srOnly}> - ocupado</span>
-                  )}
-                  {isUnavailable && (
-                    <span className={styles.unavailableLabel} aria-hidden="true">
-                      ocupado
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-            {availability?.[selectedDate]?.length === 0 && (
-              <p className={styles.chooseDate}>
-                No hay horarios disponibles para este día.
-              </p>
-            )}
-          </div>
+          <>
+            <div className={styles.timeSlots} aria-label="Horarios disponibles">
+              {(availability?.[selectedDate] ?? [])
+                .filter((slot) => slot.status === "available")
+                .map((slot) => (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    className={`${styles.timeSlot} ${styles.availableTime} ${selectedTime === slot.time ? styles.selectedTime : ""}`}
+                    aria-pressed={selectedTime === slot.time}
+                    onClick={() => onSelectTime(slot.time)}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              {!availability?.[selectedDate]?.some(
+                (slot) => slot.status === "available",
+              ) &&
+                !shorterServiceAvailability?.[selectedDate] && (
+                <p className={styles.chooseDate}>
+                  No hay horarios disponibles para este día.
+                </p>
+                )}
+            </div>
+          </>
         )
       ) : (
         <p className={styles.chooseDate}>

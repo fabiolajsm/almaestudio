@@ -4,11 +4,8 @@ import { useEffect, useState } from "react";
 import type { SubmitEvent } from "react";
 import { getArgentinaDateKey } from "../appointmentDates";
 
-import {
-  appointmentDeposit,
-  maximumAppointmentDuration,
-} from "../appointmentCatalog";
-import { FiArrowLeft, FiArrowRight, FiCheck, FiUpload } from "react-icons/fi";
+import { maximumAppointmentDuration } from "../appointmentCatalog";
+import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
@@ -17,15 +14,7 @@ import TurnSummary from "@/components/TurnSummary";
 
 import styles from "./page.module.css";
 
-const steps = ["Servicio", "Día y hora", "Seña y contacto"];
-
-type TransferConfig = {
-  accountHolder: string | null;
-  alias: string | null;
-  cbu: string | null;
-  deposit: number;
-  configured: boolean;
-};
+const steps = ["Servicio", "Día y hora", "Datos de contacto"];
 
 type ApiError = {
   error?: string;
@@ -44,16 +33,11 @@ export default function CreateAppointmentPage() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [transferConfig, setTransferConfig] = useState<TransferConfig | null>(
-    null,
-  );
-  const [configLoading, setConfigLoading] = useState(true);
   const [holdId, setHoldId] = useState<string | null>(null);
   const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
   const [clockNow, setClockNow] = useState(0);
-  const [proofFile, setProofFile] = useState<File | null>(null);
   const [isBusy, setIsBusy] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [formMessage, setFormMessage] = useState("");
   const selectedServices = services.filter((service) =>
     selectedServiceIds.includes(service.id),
@@ -76,9 +60,8 @@ export default function CreateAppointmentPage() {
     },
     {
       kicker: "Paso 03",
-      title: "Seña y datos de contacto.",
-      description:
-        "Transferí la seña fija de $ 5.000 y adjuntá el comprobante para reservar.",
+      title: "Tus datos de contacto.",
+      description: "Completá tus datos para enviar la solicitud de turno.",
     },
   ][currentStep];
 
@@ -86,33 +69,6 @@ export default function CreateAppointmentPage() {
     ? Math.max(0, Math.ceil((Date.parse(holdExpiresAt) - clockNow) / 1000))
     : 0;
   const holdExpired = Boolean(holdExpiresAt) && remainingSeconds === 0;
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("/api/appointments/config", {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("No se pudo cargar la información de pago.");
-        }
-
-        return (await response.json()) as TransferConfig;
-      })
-      .then(setTransferConfig)
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-
-        setFormMessage("No se pudo cargar la información de pago. Recargá la página.");
-      })
-      .finally(() => setConfigLoading(false));
-
-    return () => controller.abort();
-  }, []);
 
   useEffect(() => {
     if (!holdExpiresAt) {
@@ -146,7 +102,7 @@ export default function CreateAppointmentPage() {
                   <button
                     type="button"
                     aria-current={isCurrent ? "step" : undefined}
-                    disabled={!isComplete || isBusy || isConfirmed}
+                    disabled={!isComplete || isBusy || isSubmitted}
                     onClick={() => void goToStep(index)}
                   >
                     <span className={styles.stepNumber} aria-hidden="true">
@@ -207,12 +163,11 @@ export default function CreateAppointmentPage() {
               ))}
 
             {currentStep === 2 && (
-              <div className={styles.paymentStep}>
-                {isConfirmed ? (
+              <div className={styles.contactStep}>
+                {isSubmitted ? (
                   <p className={styles.confirmationMessage} role="status">
-                    Recibimos tu comprobante. El turno quedó reservado por 24
-                    horas mientras verificamos el pago. Te contactaremos por
-                    WhatsApp.
+                    Recibimos tu solicitud. El turno quedó pendiente de
+                    confirmación y te contactaremos por WhatsApp.
                   </p>
                 ) : holdExpired ? (
                   <p className={styles.formMessage} role="alert">
@@ -225,37 +180,6 @@ export default function CreateAppointmentPage() {
                       Tenés {formatRemainingTime(remainingSeconds)} para
                       completar la reserva.
                     </div>
-
-                    <section
-                      className={styles.transferDetails}
-                      aria-labelledby="transfer-title"
-                    >
-                      <h3 id="transfer-title">Datos para transferir</h3>
-                      <p>
-                        Seña fija:{" "}
-                        <strong>
-                          $ {new Intl.NumberFormat("es-AR").format(appointmentDeposit)}
-                        </strong>
-                      </p>
-                      <dl>
-                        <div>
-                          <dt>Titular</dt>
-                          <dd>{transferConfig?.accountHolder}</dd>
-                        </div>
-                        {transferConfig?.alias && (
-                          <div>
-                            <dt>Alias</dt>
-                            <dd>{transferConfig.alias}</dd>
-                          </div>
-                        )}
-                        {transferConfig?.cbu && (
-                          <div>
-                            <dt>CBU/CVU</dt>
-                            <dd>{transferConfig.cbu}</dd>
-                          </div>
-                        )}
-                      </dl>
-                    </section>
 
                     <form
                       id="appointment-contact-form"
@@ -296,28 +220,6 @@ export default function CreateAppointmentPage() {
                           required
                         />
                       </label>
-                      <label className={styles.proofField}>
-                        Comprobante de transferencia
-                        <span className={styles.fileInput}>
-                          <FiUpload aria-hidden="true" />
-                          <span>
-                            {proofFile
-                              ? proofFile.name
-                              : "Elegí una imagen (JPG, PNG o WEBP)"}
-                          </span>
-                          <input
-                            name="proof"
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            aria-label="Subir imagen del comprobante"
-                            onChange={handleProofChange}
-                            required
-                          />
-                        </span>
-                        <span className={styles.proofHelp}>
-                          Tamaño máximo: 5 MB.
-                        </span>
-                      </label>
                     </form>
                   </>
                 )}
@@ -325,7 +227,7 @@ export default function CreateAppointmentPage() {
             )}
 
             <div className={styles.stepActions}>
-              {currentStep > 0 && !isConfirmed && (
+              {currentStep > 0 && !isSubmitted && (
                 <button
                   type="button"
                   className={styles.secondaryButton}
@@ -346,10 +248,7 @@ export default function CreateAppointmentPage() {
                       (selectedServiceIds.length === 0 ||
                         selectedServicesDuration > maximumAppointmentDuration)) ||
                     (currentStep === 1 &&
-                      (!selectedDate ||
-                        !selectedTime ||
-                        configLoading ||
-                        !transferConfig?.configured))
+                      (!selectedDate || !selectedTime))
                   }
                   onClick={() => void continueToNextStep()}
                 >
@@ -357,20 +256,20 @@ export default function CreateAppointmentPage() {
                   {!isBusy && <FiArrowRight aria-hidden="true" />}
                 </button>
               ) : (
-                !isConfirmed &&
+                !isSubmitted &&
                 !holdExpired && (
                   <button
                     type="submit"
                     form="appointment-contact-form"
                     className={styles.primaryButton}
-                    disabled={isBusy || !proofFile}
+                    disabled={isBusy}
                   >
-                    {isBusy ? "Enviando..." : "Enviar comprobante y reservar"}
+                    {isBusy ? "Enviando..." : "Solicitar turno"}
                     {!isBusy && <FiArrowRight aria-hidden="true" />}
                   </button>
                 )
               )}
-              {currentStep === 2 && holdExpired && !isConfirmed && (
+              {currentStep === 2 && holdExpired && !isSubmitted && (
                 <button
                   type="button"
                   className={styles.primaryButton}
@@ -382,15 +281,6 @@ export default function CreateAppointmentPage() {
                 </button>
               )}
             </div>
-            {currentStep === 1 &&
-              !configLoading &&
-              transferConfig &&
-              !transferConfig.configured && (
-                <p className={styles.formMessage} role="alert">
-                  La cuenta para transferir todavía no está configurada. Por
-                  ahora no se pueden reservar turnos.
-                </p>
-              )}
             {formMessage && (
               <p className={styles.formMessage} role="alert">
                 {formMessage}
@@ -432,8 +322,7 @@ export default function CreateAppointmentPage() {
     if (
       currentStep !== 1 ||
       !selectedDate ||
-      !selectedTime ||
-      !transferConfig?.configured
+      !selectedTime
     ) {
       return;
     }
@@ -477,7 +366,7 @@ export default function CreateAppointmentPage() {
   }
 
   async function goToStep(step: number) {
-    if (step < 0 || step >= currentStep || isConfirmed) {
+    if (step < 0 || step >= currentStep || isSubmitted) {
       return;
     }
 
@@ -497,7 +386,6 @@ export default function CreateAppointmentPage() {
 
         setHoldId(null);
         setHoldExpiresAt(null);
-        setProofFile(null);
       } catch (error) {
         setFormMessage(
           error instanceof Error
@@ -515,24 +403,6 @@ export default function CreateAppointmentPage() {
     setCurrentStep(step);
   }
 
-  function handleProofChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0] ?? null;
-
-    if (
-      file &&
-      (file.size > 5 * 1024 * 1024 ||
-        !["image/jpeg", "image/png", "image/webp"].includes(file.type))
-    ) {
-      event.currentTarget.value = "";
-      setProofFile(null);
-      setFormMessage("Elegí una imagen JPG, PNG o WEBP de hasta 5 MB.");
-      return;
-    }
-
-    setProofFile(file);
-    setFormMessage("");
-  }
-
   async function submitAppointment(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -545,9 +415,15 @@ export default function CreateAppointmentPage() {
     setFormMessage("");
 
     try {
+      const formData = new FormData(event.currentTarget);
       const response = await fetch(`/api/appointments/holds/${holdId}`, {
         method: "POST",
-        body: new FormData(event.currentTarget),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          email: formData.get("email"),
+          phone: formData.get("phone"),
+        }),
       });
       const result = (await response.json()) as ApiError & {
         status?: string;
@@ -559,7 +435,7 @@ export default function CreateAppointmentPage() {
         );
       }
 
-      setIsConfirmed(true);
+      setIsSubmitted(true);
     } catch (error) {
       setFormMessage(
         error instanceof Error

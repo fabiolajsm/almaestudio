@@ -5,7 +5,6 @@ import {
   isAdminSessionSecretConfigured,
 } from "@/lib/adminSession";
 import {
-  createAppointmentProofSignedUrl,
   getAdminAppointmentReservations,
   SupabaseRequestError,
   updateAdminAppointmentStatus,
@@ -42,17 +41,9 @@ export async function GET(request: Request) {
 
   try {
     const reservations = await getAdminAppointmentReservations();
-    const appointments = await Promise.all(
-      reservations.map(async (reservation) => ({
-        ...reservation,
-        proof_url: reservation.proof_path
-          ? await createAppointmentProofSignedUrl(reservation.proof_path)
-          : null,
-      })),
-    );
 
     return Response.json(
-      { appointments },
+      { appointments: reservations },
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
@@ -62,7 +53,7 @@ export async function GET(request: Request) {
         error:
           error instanceof SupabaseRequestError
             ? "No se pudieron cargar las reservas. Verificá la conexión con Supabase."
-            : "No se pudieron cargar las reservas y comprobantes.",
+            : "No se pudieron cargar las reservas.",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );

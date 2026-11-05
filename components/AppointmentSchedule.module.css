@@ -121,37 +121,6 @@
   font-weight: 600;
 }
 
-.legend {
-  display: flex;
-  gap: 12px;
-  margin: 0;
-  padding: 0;
-  color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
-  list-style: none;
-}
-
-.legend li {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.availableDot,
-.unavailableDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-.availableDot {
-  background: var(--color-available);
-}
-
-.unavailableDot {
-  background: var(--color-stone);
-}
-
 .timeSlots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -187,17 +156,6 @@
   border-color: var(--color-available);
 }
 
-.unavailable {
-  border-color: var(--color-stone);
-  color: var(--color-brown);
-  cursor: not-allowed;
-  text-decoration: line-through;
-}
-
-.unavailableLabel {
-  font-size: var(--font-size-small-mobile);
-}
-
 .selectedTime {
   border-color: var(--color-ink);
   background: white;
@@ -213,17 +171,6 @@
   margin: 12px 0 0;
   color: var(--color-brown);
   font-size: var(--font-size-small-mobile);
-}
-
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  clip-path: inset(50%);
 }
 
 @media (max-width: 480px) {

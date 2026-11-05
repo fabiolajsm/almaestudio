@@ -86,5 +86,3 @@ export function isAppointmentTimeWithinBusinessHours(
     start + durationMinutes <= appointmentClosingTime
   );
 }
-
-export const appointmentDeposit = 5000;

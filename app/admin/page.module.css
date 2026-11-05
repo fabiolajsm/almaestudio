@@ -63,8 +63,7 @@
 .loginForm button:focus-visible,
 .secondaryButton:focus-visible,
 .filters button:focus-visible,
-.cardActions button:focus-visible,
-.proofLink:focus-visible {
+.cardActions button:focus-visible {
   outline: 2px solid var(--color-brown);
   outline-offset: 3px;
 }
@@ -223,16 +222,6 @@
 }
 
 .details a {
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.proofLink {
-  display: inline-flex;
-  margin-top: 18px;
-  color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
-  font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 3px;
 }

@@ -50,17 +50,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Solicitud no válida." }, { status: 403 });
   }
 
-  const accountHolder = process.env.TRANSFER_ACCOUNT_HOLDER?.trim();
-  const transferAlias = process.env.TRANSFER_ALIAS?.trim();
-  const transferCvu = process.env.TRANSFER_CVU?.trim();
-
-  if (!accountHolder || (!transferAlias && !transferCvu)) {
-    return Response.json(
-      { error: "La información de pago todavía no está configurada." },
-      { status: 503 },
-    );
-  }
-
   let body: HoldRequest;
   try {
     body = (await request.json()) as HoldRequest;

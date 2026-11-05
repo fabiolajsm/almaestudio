@@ -1,6 +1,7 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import { maximumAppointmentDuration } from "@/app/Appoinments/appointmentCatalog";
 import {
+  getGoogleCalendarAvailabilityByDate,
   getAvailableTimesByDate,
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
@@ -44,14 +45,17 @@ export async function GET(request: Request) {
   }
 
   try {
-    const availableTimes = await getAvailableTimesByDate(
-      startDate,
-      endDate,
-      durationMinutes,
-    );
+    const availability =
+      process.env.NODE_ENV === "development"
+        ? await getGoogleCalendarAvailabilityByDate(
+            startDate,
+            endDate,
+            durationMinutes,
+          )
+        : await getAvailableTimesByDate(startDate, endDate, durationMinutes);
 
     return Response.json(
-      { availableTimes },
+      availability,
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {

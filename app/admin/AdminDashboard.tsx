@@ -9,7 +9,6 @@ import {
   FiX,
 } from "react-icons/fi";
 import {
-  appointmentDeposit,
   appointmentServices,
 } from "../Appoinments/appointmentCatalog";
 import styles from "./page.module.css";
@@ -24,7 +23,6 @@ type AdminAppointment = {
   customer_name: string | null;
   customer_email: string | null;
   customer_phone: string | null;
-  proof_url: string | null;
   status: "pending_review" | "confirmed";
   created_at: string;
 };
@@ -294,7 +292,7 @@ export default function AdminDashboard() {
           <p className={styles.eyebrow}>Alma Estudio</p>
           <h1 id="admin-title">Administración</h1>
           <p className={styles.intro}>
-            Ingresá para revisar reservas y comprobantes de pago.
+            Ingresá para administrar las solicitudes de turno.
           </p>
           <form className={styles.loginForm} onSubmit={signIn}>
             <label htmlFor="admin-password">Contraseña de administradora</label>
@@ -327,7 +325,7 @@ export default function AdminDashboard() {
           <p className={styles.eyebrow}>Alma Estudio</p>
           <h1>Reservas</h1>
           <p className={styles.intro}>
-            Revisá los comprobantes y administrá los turnos.
+            Revisá las solicitudes y administrá los turnos.
           </p>
         </div>
         <div className={styles.headerActions}>
@@ -387,7 +385,7 @@ export default function AdminDashboard() {
       ) : visibleAppointments.length === 0 ? (
         <p className={styles.emptyState}>
           {filter === "pending_review"
-            ? "No hay comprobantes pendientes de revisión."
+            ? "No hay solicitudes pendientes de confirmación."
             : "No hay reservas para mostrar."}
         </p>
       ) : (
@@ -414,7 +412,7 @@ export default function AdminDashboard() {
                   <span
                     className={`${styles.status} ${isPending ? styles.pending : styles.confirmed}`}
                   >
-                    {isPending ? "Comprobante por revisar" : "Confirmado"}
+                    {isPending ? "Pendiente de confirmación" : "Confirmado"}
                   </span>
                 </header>
 
@@ -433,12 +431,6 @@ export default function AdminDashboard() {
                     <dt>Total</dt>
                     <dd>{formatAmount(appointment.total_price)}</dd>
                   </div>
-                  {isPending && (
-                    <div>
-                      <dt>Seña a verificar</dt>
-                      <dd>{formatAmount(appointmentDeposit)}</dd>
-                    </div>
-                  )}
                   {appointment.customer_email && (
                     <div>
                       <dt>Email</dt>
@@ -465,17 +457,6 @@ export default function AdminDashboard() {
                   )}
                 </dl>
 
-                {appointment.proof_url && (
-                  <a
-                    className={styles.proofLink}
-                    href={appointment.proof_url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Ver comprobante
-                  </a>
-                )}
-
                 {(isPending || appointment.status === "confirmed") && (
                   <div className={styles.cardActions}>
                     {isPending && (
@@ -488,7 +469,7 @@ export default function AdminDashboard() {
                         }
                       >
                         <FiCheck aria-hidden="true" />
-                        Confirmar pago
+                        Confirmar turno
                       </button>
                     )}
                     <button
