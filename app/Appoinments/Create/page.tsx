@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { getArgentinaDateKey } from "../appointmentDates";
 
-import { maximumAppointmentDuration } from "../appointmentCatalog";
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../SiteHeader";
@@ -20,22 +19,12 @@ type ApiError = {
   error?: string;
 };
 
-function formatRemainingTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
-
-  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
-}
-
 export default function CreateAppointmentPage() {
   const [today, setToday] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
-  const [holdId, setHoldId] = useState<string | null>(null);
-  const [holdExpiresAt, setHoldExpiresAt] = useState<string | null>(null);
-  const [clockNow, setClockNow] = useState(0);
   const [isBusy, setIsBusy] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formMessage, setFormMessage] = useState("");
@@ -64,20 +53,6 @@ export default function CreateAppointmentPage() {
       description: "Completá tus datos para enviar la solicitud de turno.",
     },
   ][currentStep];
-
-  const remainingSeconds = holdExpiresAt
-    ? Math.max(0, Math.ceil((Date.parse(holdExpiresAt) - clockNow) / 1000))
-    : 0;
-  const holdExpired = Boolean(holdExpiresAt) && remainingSeconds === 0;
-
-  useEffect(() => {
-    if (!holdExpiresAt) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => setClockNow(Date.now()), 1000);
-    return () => window.clearInterval(intervalId);
-  }, [holdExpiresAt]);
 
   return (
     <main className="site-shell">
@@ -129,12 +104,6 @@ export default function CreateAppointmentPage() {
                   selectedServiceIds={selectedServiceIds}
                   onToggleService={toggleService}
                 />
-                {selectedServicesDuration > maximumAppointmentDuration && (
-                  <p className={styles.formMessage} role="alert">
-                    La duración total no puede superar las 5 horas. Quitá un
-                    servicio para continuar.
-                  </p>
-                )}
               </>
             )}
 
@@ -166,19 +135,14 @@ export default function CreateAppointmentPage() {
               <div className={styles.contactStep}>
                 {isSubmitted ? (
                   <p className={styles.confirmationMessage} role="status">
-                    Recibimos tu solicitud. El turno quedó pendiente de
-                    confirmación y te contactaremos por WhatsApp.
-                  </p>
-                ) : holdExpired ? (
-                  <p className={styles.formMessage} role="alert">
-                    Venció el tiempo para completar la reserva. Volvé a elegir
-                    un horario para intentarlo nuevamente.
+                    Creamos el turno en la agenda. La solicitud quedó pendiente
+                    de confirmación y te contactaremos por WhatsApp.
                   </p>
                 ) : (
                   <>
-                    <div className={styles.holdNotice} role="timer">
-                      Tenés {formatRemainingTime(remainingSeconds)} para
-                      completar la reserva.
+                    <div className={styles.holdNotice}>
+                      Al enviar tus datos, verificaremos la disponibilidad y
+                      crearemos el turno en la agenda.
                     </div>
 
                     <form
@@ -244,20 +208,17 @@ export default function CreateAppointmentPage() {
                   className={styles.primaryButton}
                   disabled={
                     isBusy ||
-                    (currentStep === 0 &&
-                      (selectedServiceIds.length === 0 ||
-                        selectedServicesDuration > maximumAppointmentDuration)) ||
+                    (currentStep === 0 && selectedServiceIds.length === 0) ||
                     (currentStep === 1 &&
                       (!selectedDate || !selectedTime))
                   }
                   onClick={() => void continueToNextStep()}
                 >
-                  {isBusy ? "Reservando..." : "Continuar"}
+                  {isBusy ? "Continuando..." : "Continuar"}
                   {!isBusy && <FiArrowRight aria-hidden="true" />}
                 </button>
               ) : (
-                !isSubmitted &&
-                !holdExpired && (
+                !isSubmitted && (
                   <button
                     type="submit"
                     form="appointment-contact-form"
@@ -268,17 +229,6 @@ export default function CreateAppointmentPage() {
                     {!isBusy && <FiArrowRight aria-hidden="true" />}
                   </button>
                 )
-              )}
-              {currentStep === 2 && holdExpired && !isSubmitted && (
-                <button
-                  type="button"
-                  className={styles.primaryButton}
-                  disabled={isBusy}
-                  onClick={() => void goToStep(1)}
-                >
-                  Elegir otro horario
-                  <FiArrowRight aria-hidden="true" />
-                </button>
               )}
             </div>
             {formMessage && (
@@ -307,11 +257,10 @@ export default function CreateAppointmentPage() {
     setSelectedTime(null);
   }
 
-  async function continueToNextStep() {
+  function continueToNextStep() {
     if (
       currentStep === 0 &&
-      selectedServiceIds.length > 0 &&
-      selectedServicesDuration <= maximumAppointmentDuration
+      selectedServiceIds.length > 0
     ) {
       setToday(getArgentinaDateKey(new Date()));
       setFormMessage("");
@@ -327,76 +276,13 @@ export default function CreateAppointmentPage() {
       return;
     }
 
-    setIsBusy(true);
     setFormMessage("");
-
-    try {
-      const response = await fetch("/api/appointments/holds", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date: selectedDate,
-          time: selectedTime,
-          serviceIds: selectedServiceIds,
-        }),
-      });
-      const result = (await response.json()) as HoldResult | ApiError;
-
-      if (!response.ok || !("hold_id" in result)) {
-        throw new Error(
-          "error" in result
-            ? result.error
-            : "No se pudo reservar el horario. Intentá nuevamente.",
-        );
-      }
-
-      setHoldId(result.hold_id);
-      setHoldExpiresAt(result.expires_at);
-      setClockNow(Date.now());
-      setCurrentStep(2);
-    } catch (error) {
-      setFormMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo reservar el horario. Intentá nuevamente.",
-      );
-    } finally {
-      setIsBusy(false);
-    }
+    setCurrentStep(2);
   }
 
-  async function goToStep(step: number) {
+  function goToStep(step: number) {
     if (step < 0 || step >= currentStep || isSubmitted) {
       return;
-    }
-
-    if (currentStep === 2 && holdId) {
-      setIsBusy(true);
-      setFormMessage("");
-
-      try {
-        const response = await fetch(`/api/appointments/holds/${holdId}`, {
-          method: "DELETE",
-        });
-
-        if (!response.ok) {
-          const result = (await response.json()) as ApiError;
-          throw new Error(result.error || "No se pudo liberar el horario.");
-        }
-
-        setHoldId(null);
-        setHoldExpiresAt(null);
-      } catch (error) {
-        setFormMessage(
-          error instanceof Error
-            ? error.message
-            : "No se pudo liberar el horario. Intentá nuevamente.",
-        );
-        setIsBusy(false);
-        return;
-      }
-
-      setIsBusy(false);
     }
 
     setFormMessage("");
@@ -406,8 +292,8 @@ export default function CreateAppointmentPage() {
   async function submitAppointment(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!holdId || holdExpired) {
-      setFormMessage("El tiempo para completar la reserva venció.");
+    if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) {
+      setFormMessage("Volvé a elegir los servicios, la fecha y el horario.");
       return;
     }
 
@@ -416,10 +302,13 @@ export default function CreateAppointmentPage() {
 
     try {
       const formData = new FormData(event.currentTarget);
-      const response = await fetch(`/api/appointments/holds/${holdId}`, {
+      const response = await fetch("/api/appointments/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          date: selectedDate,
+          time: selectedTime,
+          serviceIds: selectedServiceIds,
           name: formData.get("name"),
           email: formData.get("email"),
           phone: formData.get("phone"),
@@ -447,8 +336,3 @@ export default function CreateAppointmentPage() {
     }
   }
 }
-
-type HoldResult = {
-  hold_id: string;
-  expires_at: string;
-};

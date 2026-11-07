@@ -1,5 +1,6 @@
 import {
   clearAdminSessionCookie,
+  clearLegacyAdminSessionCookie,
   createAdminSessionCookie,
   hasSameOrigin,
   isAdminPasswordConfigured,
@@ -56,14 +57,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const headers = new Headers({ "Cache-Control": "no-store" });
+    headers.append("Set-Cookie", createAdminSessionCookie());
+    headers.append("Set-Cookie", clearLegacyAdminSessionCookie());
+
     return Response.json(
       { authenticated: true },
-      {
-        headers: {
-          "Cache-Control": "no-store",
-          "Set-Cookie": createAdminSessionCookie(),
-        },
-      },
+      { headers },
     );
   } catch (error) {
     console.error("No se pudo crear la sesión de administración.", error);
@@ -79,13 +79,12 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Solicitud no válida." }, { status: 403 });
   }
 
+  const headers = new Headers({ "Cache-Control": "no-store" });
+  headers.append("Set-Cookie", clearAdminSessionCookie());
+  headers.append("Set-Cookie", clearLegacyAdminSessionCookie());
+
   return Response.json(
     { authenticated: false },
-    {
-      headers: {
-        "Cache-Control": "no-store",
-        "Set-Cookie": clearAdminSessionCookie(),
-      },
-    },
+    { headers },
   );
 }

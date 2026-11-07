@@ -1,37 +1,15 @@
-import {
-  hasSameOrigin,
-  hasValidAdminSession,
-  isAdminPasswordConfigured,
-  isAdminSessionSecretConfigured,
-} from "@/lib/adminSession";
+import { hasSameOrigin } from "@/lib/adminSession";
 import {
   getAdminAppointmentReservations,
   SupabaseRequestError,
   updateAdminAppointmentStatus,
 } from "@/lib/supabaseAdmin";
+import { requireAdmin } from "./authorization";
 
 export const runtime = "nodejs";
 
 const appointmentIdPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function requireAdmin(request: Request) {
-  if (!isAdminPasswordConfigured() || !isAdminSessionSecretConfigured()) {
-    return Response.json(
-      { error: "El acceso de administración todavía no está configurado." },
-      { status: 503, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
-  if (!hasValidAdminSession(request)) {
-    return Response.json(
-      { error: "Iniciá sesión para continuar." },
-      { status: 401, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
-  return null;
-}
 
 export async function GET(request: Request) {
   const authError = requireAdmin(request);
@@ -103,7 +81,7 @@ export async function PATCH(request: Request) {
   if (
     typeof body.appointmentId !== "string" ||
     !appointmentIdPattern.test(body.appointmentId) ||
-    (body.action !== "confirm" && body.action !== "cancel")
+    body.action !== "confirm"
   ) {
     return Response.json({ error: "La acción no es válida." }, { status: 400 });
   }
@@ -111,7 +89,7 @@ export async function PATCH(request: Request) {
   try {
     const updated = await updateAdminAppointmentStatus(
       body.appointmentId,
-      body.action === "confirm" ? "confirmed" : "cancelled",
+      "confirmed",
     );
 
     if (!updated) {
@@ -128,7 +106,9 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("No se pudo actualizar el estado de la reserva.", error);
     return Response.json(
-      { error: "No se pudo actualizar la reserva. Intentá nuevamente." },
+      {
+        error: "No se pudo actualizar la reserva. Intentá nuevamente.",
+      },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }

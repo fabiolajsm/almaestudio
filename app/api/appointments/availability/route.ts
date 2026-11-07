@@ -1,5 +1,4 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
-import { maximumAppointmentDuration } from "@/app/Appoinments/appointmentCatalog";
 import {
   getGoogleCalendarAvailabilityByDate,
   getAvailableTimesByDate,
@@ -35,8 +34,7 @@ export async function GET(request: Request) {
     endDate < startDate ||
     dateRange > 62 * dayInMilliseconds ||
     !Number.isInteger(durationMinutes) ||
-    durationMinutes < 15 ||
-    durationMinutes > maximumAppointmentDuration
+    durationMinutes < 15
   ) {
     return Response.json(
       { error: "El rango de fechas o la duración no son válidos." },

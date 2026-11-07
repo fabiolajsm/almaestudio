@@ -1,4 +1,4 @@
-import { createSign } from "node:crypto";
+import { createHash, createSign } from "node:crypto";
 import {
   appointmentClosingTime,
   appointmentBufferMinutes,
@@ -8,13 +8,14 @@ import {
   isAppointmentWorkingDay,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
-import { callSupabaseRpc } from "@/lib/supabaseAdmin";
+import { getActiveAppointmentReservations } from "@/lib/supabaseAdmin";
 
 const calendarId = "almaestudio.arg@gmail.com";
 const timeZone = "America/Argentina/Buenos_Aires";
 const slotBufferMilliseconds = appointmentBufferMinutes * 60 * 1000;
 const tokenUrl = "https://oauth2.googleapis.com/token";
 const freeBusyUrl = "https://www.googleapis.com/calendar/v3/freeBusy";
+const calendarEventsUrl = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`;
 
 type BusyInterval = {
   start: number;
@@ -90,7 +91,10 @@ async function getAccessToken() {
     encodeBase64Url(
       JSON.stringify({
         iss: serviceAccountEmail,
-        scope: "https://www.googleapis.com/auth/calendar.freebusy",
+        scope: [
+          "https://www.googleapis.com/auth/calendar.freebusy",
+          "https://www.googleapis.com/auth/calendar.events",
+        ].join(" "),
         aud: tokenUrl,
         iat: issuedAt,
         exp: issuedAt + 3600,
@@ -138,6 +142,91 @@ async function getAccessToken() {
   cachedAccessToken = result.access_token;
   tokenExpiresAt = Date.now() + result.expires_in * 1000;
   return cachedAccessToken;
+}
+
+export function getCalendarEventId(appointmentId: string) {
+  return createHash("sha256").update(appointmentId).digest("hex");
+}
+
+function getLocalDateTimeKey(date: string, time: string, durationMinutes: number) {
+  const [hour, minute] = time.split(":").map(Number);
+  const endMinutes = hour * 60 + minute + durationMinutes;
+  const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+  return {
+    start: `${date}T${time}:00`,
+    end: `${date}T${endTime}:00`,
+  };
+}
+
+export async function createCalendarAppointment({
+  appointmentId,
+  date,
+  time,
+  durationMinutes,
+  customerName,
+  serviceNames,
+}: {
+  appointmentId: string;
+  date: string;
+  time: string;
+  durationMinutes: number;
+  customerName: string;
+  serviceNames: string[];
+}) {
+  const accessToken = await getAccessToken();
+  const eventId = getCalendarEventId(appointmentId);
+  const { start, end } = getLocalDateTimeKey(date, time, durationMinutes);
+  const response = await fetch(calendarEventsUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      id: eventId,
+      summary: `Turno - ${customerName}`,
+      description: `Servicios: ${serviceNames.join(", ")}`,
+      start: { dateTime: start, timeZone },
+      end: { dateTime: end, timeZone },
+      transparency: "opaque",
+    }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (response.status === 409) {
+    return eventId;
+  }
+
+  if (!response.ok) {
+    throw new GoogleCalendarIntegrationError(
+      "No se pudo crear el evento del turno en Google Calendar.",
+      "unavailable",
+    );
+  }
+
+  return eventId;
+}
+
+export async function deleteCalendarAppointment(eventId: string) {
+  const accessToken = await getAccessToken();
+  const response = await fetch(
+    `${calendarEventsUrl}/${encodeURIComponent(eventId)}`,
+    {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok && response.status !== 404 && response.status !== 410) {
+    throw new GoogleCalendarIntegrationError(
+      "No se pudo eliminar el evento del turno de Google Calendar.",
+      "unavailable",
+    );
+  }
 }
 
 async function getCalendarBusyIntervals(start: Date, end: Date) {
@@ -203,12 +292,9 @@ async function getReservationBusyIntervals(
   startDate: string,
   endDate: string,
 ) {
-  const reservations = await callSupabaseRpc<BusyReservation[]>(
-    "get_active_appointment_busy_intervals",
-    {
-      p_start_date: startDate,
-      p_end_date: endDate,
-    },
+  const reservations: BusyReservation[] = await getActiveAppointmentReservations(
+    startDate,
+    endDate,
   );
 
   return reservations.map(

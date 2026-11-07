@@ -10,6 +10,7 @@ import {
 } from "react-icons/fi";
 import {
   appointmentServices,
+  legacyAppointmentServiceNames,
 } from "../Appoinments/appointmentCatalog";
 import styles from "./page.module.css";
 
@@ -28,6 +29,10 @@ type AdminAppointment = {
 };
 
 type AppointmentFilter = "pending_review" | "confirmed" | "all";
+
+const appointmentServiceNamesById = new Map(
+  appointmentServices.map((service) => [service.id, service.name]),
+);
 
 function formatDate(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -241,14 +246,19 @@ export default function AdminDashboard() {
     setMessage("");
 
     try {
-      const response = await fetch("/api/admin/appointments", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appointmentId: appointment.id,
-          action,
-        }),
-      });
+      const response = await fetch(
+        action === "confirm"
+          ? "/api/admin/appointments"
+          : "/api/appointments/cancel",
+        {
+          method: action === "confirm" ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body:
+            action === "confirm"
+              ? JSON.stringify({ appointmentId: appointment.id, action })
+              : JSON.stringify({ appointmentId: appointment.id }),
+        },
+      );
       const result = (await response.json()) as { error?: unknown };
 
       if (!response.ok) {
@@ -391,9 +401,13 @@ export default function AdminDashboard() {
       ) : (
         <div className={styles.appointmentList}>
           {visibleAppointments.map((appointment) => {
-            const selectedServices = appointmentServices.filter((service) =>
-              appointment.service_ids.includes(service.id),
-            );
+            const selectedServiceNames = appointment.service_ids
+              .map(
+                (serviceId) =>
+                  appointmentServiceNamesById.get(serviceId) ??
+                  legacyAppointmentServiceNames[serviceId],
+              )
+              .filter((name): name is string => Boolean(name));
             const isPending = appointment.status === "pending_review";
             const isBusy = busyAppointmentId === appointment.id;
 
@@ -420,7 +434,7 @@ export default function AdminDashboard() {
                   <div>
                     <dt>Servicios</dt>
                     <dd>
-                      {selectedServices.map((service) => service.name).join(" + ")}
+                      {selectedServiceNames.join(" + ")}
                     </dd>
                   </div>
                   <div>

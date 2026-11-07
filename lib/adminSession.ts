@@ -29,10 +29,16 @@ export function createAdminSessionCookie() {
     .digest("base64url");
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
 
-  return `${sessionCookieName}=${payload}.${signature}; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=${sessionDurationSeconds}${secure}`;
+  return `${sessionCookieName}=${payload}.${signature}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${sessionDurationSeconds}${secure}`;
 }
 
 export function clearAdminSessionCookie() {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+
+  return `${sessionCookieName}=; HttpOnly; SameSite=Strict; Path=/api; Max-Age=0${secure}`;
+}
+
+export function clearLegacyAdminSessionCookie() {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
 
   return `${sessionCookieName}=; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=0${secure}`;

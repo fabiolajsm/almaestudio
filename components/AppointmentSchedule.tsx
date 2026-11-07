@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  isAppointmentTimeWithinBusinessHours,
-  maximumAppointmentDuration,
-} from "@/app/Appoinments/appointmentCatalog";
+import { isAppointmentTimeWithinBusinessHours } from "@/app/Appoinments/appointmentCatalog";
 import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
 import styles from "./AppointmentSchedule.module.css";
 
@@ -257,14 +254,10 @@ export default function AppointmentSchedule({
         hasShorterServiceAvailabilityInRange;
   const isLoading =
     serviceDuration > 0 &&
-    serviceDuration <= maximumAppointmentDuration &&
     currentAvailabilityState === null;
 
   useEffect(() => {
-    if (
-      serviceDuration <= 0 ||
-      serviceDuration > maximumAppointmentDuration
-    ) {
+    if (serviceDuration <= 0) {
       return;
     }
 
@@ -362,7 +355,7 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        Atención de lunes a sábado, de 9 a 22hs. Los inicios se muestran cada
+        Atención de lunes a sábado, de 8 a 22hs. Los inicios se muestran cada
         15 min según la duración del servicio. Solo se muestran horarios
         disponibles.
       </p>
@@ -391,10 +384,6 @@ export default function AppointmentSchedule({
         ) : serviceDuration <= 0 ? (
           <p className={styles.chooseDate}>
             Elegí al menos un servicio para consultar los horarios.
-          </p>
-        ) : serviceDuration > maximumAppointmentDuration ? (
-          <p className={styles.chooseDate} role="alert">
-            La duración total no puede superar las 5 horas.
           </p>
         ) : (
           <>
@@ -431,8 +420,6 @@ export default function AppointmentSchedule({
               ? "Consultando disponibilidad..."
               : serviceDuration <= 0
                 ? "Elegí al menos un servicio para consultar los horarios."
-                : serviceDuration > maximumAppointmentDuration
-                  ? "La duración total no puede superar las 5 horas."
                 : "Elegí un día para consultar los horarios."}
         </p>
       )}

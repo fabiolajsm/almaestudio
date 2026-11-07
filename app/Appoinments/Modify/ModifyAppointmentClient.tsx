@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { FiCheck, FiMapPin, FiX } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
-import { maximumAppointmentDuration } from "../appointmentCatalog";
 import SiteHeader from "../../SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Services, { services } from "@/components/Services";
@@ -31,7 +30,7 @@ function formatAppointmentDate(dateKey: string) {
   return `${weekdays[date.getUTCDay()]} ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
 }
 
-const initialServiceIds = ["01", "05"];
+const initialServiceIds = ["mani-semipermanente", "cejas-perfilado"];
 
 export default function ModifyAppointmentClient({
   today,
@@ -63,11 +62,6 @@ export default function ModifyAppointmentClient({
   const serviceNames = savedServices.map((service) => service.name).join(" + ");
 
   function saveChanges() {
-    if (selectedDuration > maximumAppointmentDuration) {
-      setMessage("La duración total no puede superar las 5 horas.");
-      return;
-    }
-
     if (selectedServiceIds.length === 0 || !selectedDate || !selectedTime) {
       setMessage("Elegí al menos un servicio, un día y un horario.");
       return;
@@ -128,7 +122,7 @@ export default function ModifyAppointmentClient({
 
           <p className={styles.location}>
             <FiMapPin aria-hidden="true" />
-            Thames 1684, Palermo · Lunes a sábado, 9 a 22 h
+            Thames 1684, Palermo · Lunes a sábado, 8 a 22 h
           </p>
 
           <div className={styles.reservationActions}>

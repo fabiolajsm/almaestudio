@@ -4,6 +4,94 @@
   font-family: var(--font-poppins);
 }
 
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.categories {
+  display: grid;
+  gap: 10px;
+}
+
+.category {
+  overflow: hidden;
+  border: 1px solid var(--color-stone);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--color-cream) 30%, transparent);
+}
+
+.categoryToggle {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: 600 var(--font-size-small) var(--font-poppins);
+}
+
+.categoryToggle:focus-visible {
+  outline: 2px solid var(--color-brown);
+  outline-offset: -3px;
+}
+
+.categoryTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.categoryCount {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  padding-inline: 5px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-cream);
+  font-size: var(--font-size-small-mobile);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--color-brown);
+  transition: transform 160ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.categoryContent {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.categoryContent[hidden] {
+  display: none;
+}
+
+.categoryNote {
+  margin: 0;
+  padding: 0 4px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small-mobile);
+}
+
 .list {
   display: grid;
   gap: 10px;
@@ -112,6 +200,7 @@
 }
 
 @media (max-width: 1024px) {
+  .categoryToggle,
   .name,
   .description,
   .duration,

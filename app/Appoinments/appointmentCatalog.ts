@@ -1,60 +1,191 @@
+export type AppointmentServiceCategory =
+  | "manicura"
+  | "pedicura"
+  | "cejas-pestanas"
+  | "promociones";
+
 export type AppointmentService = {
   id: string;
   name: string;
-  description: string;
+  description?: string;
+  category: AppointmentServiceCategory;
   duration: number;
   price: number;
 };
 
-export const appointmentServices: AppointmentService[] = [
+export const appointmentServiceCategories: {
+  id: AppointmentServiceCategory;
+  name: string;
+  note?: string;
+}[] = [
+  { id: "manicura", name: "Manicura" },
+  { id: "pedicura", name: "Pedicura" },
+  { id: "cejas-pestanas", name: "Cejas y pestañas" },
   {
-    id: "01",
-    name: "Esmaltado semipermanente",
-    description: "Color duradero y brillante para lucir uñas prolijas por semanas.",
-    duration: 60,
-    price: 18500,
-  },
-  {
-    id: "02",
-    name: "Kapping gel",
-    description: "Refuerzo con gel para proteger tus uñas naturales.",
-    duration: 75,
-    price: 22000,
-  },
-  {
-    id: "03",
-    name: "Soft gel + diseño",
-    description: "Extensión con tips soft gel y diseño a tu gusto.",
-    duration: 105,
-    price: 28500,
-  },
-  {
-    id: "04",
-    name: "Manicuría clásica",
-    description: "Cuidado y prolijidad para tus uñas con un acabado natural.",
-    duration: 45,
-    price: 13000,
-  },
-  {
-    id: "05",
-    name: "Perfilado de cejas",
-    description: "Diseño y limpieza para definir la forma de tus cejas.",
-    duration: 30,
-    price: 8500,
-  },
-  {
-    id: "06",
-    name: "Lifting de pestañas",
-    description: "Realza tus pestañas naturales con una curvatura más abierta.",
-    duration: 60,
-    price: 16500,
+    id: "promociones",
+    name: "Promociones",
+    note: "Las promociones no son acumulables con otros descuentos.",
   },
 ];
 
-export const maximumAppointmentDuration = 300;
+export const appointmentServices: AppointmentService[] = [
+  {
+    id: "mani-belleza",
+    name: "Belleza",
+    description: "Manicuría para cuidar y prolijar tus uñas naturales.",
+    category: "manicura",
+    duration: 60,
+    price: 12000,
+  },
+  {
+    id: "mani-semipermanente",
+    name: "Semipermanente",
+    description: "Color duradero y brillante para tus uñas.",
+    category: "manicura",
+    duration: 60,
+    price: 25000,
+  },
+  {
+    id: "mani-capping",
+    name: "Capping",
+    description: "Refuerzo para proteger y dar estructura a tus uñas naturales.",
+    category: "manicura",
+    duration: 60,
+    price: 28000,
+  },
+  {
+    id: "mani-esculpidas-gel",
+    name: "Esculpidas en Gel",
+    description: "Extensión de uñas con gel para lograr el largo que buscás.",
+    category: "manicura",
+    duration: 60,
+    price: 38000,
+  },
+  {
+    id: "mani-soft-gel",
+    name: "Soft Gel",
+    description: "Extensión de uñas con tips de gel y acabado prolijo.",
+    category: "manicura",
+    duration: 60,
+    price: 32000,
+  },
+  {
+    id: "mani-diseno-extra",
+    name: "Diseños elaborados o extras",
+    description: "Sumá detalles o diseños especiales a tu servicio. Consultar antes.",
+    category: "manicura",
+    duration: 60,
+    price: 3000,
+  },
+  {
+    id: "pedi-belleza",
+    name: "Belleza de pies",
+    description: "Cuidado y prolijidad para tus pies y uñas.",
+    category: "pedicura",
+    duration: 60,
+    price: 18000,
+  },
+  {
+    id: "pedi-semipermanente",
+    name: "Semipermanente",
+    description: "Color duradero y brillante para las uñas de tus pies.",
+    category: "pedicura",
+    duration: 60,
+    price: 25000,
+  },
+  {
+    id: "pedi-combinada",
+    name: "Pedicura + Semipermanente",
+    description: "Cuidado de pies y uñas con color semipermanente.",
+    category: "pedicura",
+    duration: 60,
+    price: 33000,
+  },
+  {
+    id: "cejas-perfilado",
+    name: "Perfilado",
+    description: "Diseño y limpieza para definir la forma de tus cejas.",
+    category: "cejas-pestanas",
+    duration: 60,
+    price: 17000,
+  },
+  {
+    id: "cejas-laminado",
+    name: "Perfilado + Laminado",
+    description: "Cejas definidas y peinadas para un efecto más ordenado.",
+    category: "cejas-pestanas",
+    duration: 60,
+    price: 38000,
+  },
+  {
+    id: "cejas-laminado-tinte",
+    name: "Perfilado + Laminado + Tinte",
+    description: "Diseño, laminado y tinte para realzar tus cejas.",
+    category: "cejas-pestanas",
+    duration: 60,
+    price: 43000,
+  },
+  {
+    id: "pestanas-lifting",
+    name: "Lifting",
+    description: "Realza la curvatura natural de tus pestañas.",
+    category: "cejas-pestanas",
+    duration: 60,
+    price: 34000,
+  },
+  {
+    id: "pestanas-lifting-tinte",
+    name: "Lifting + Tinte",
+    description: "Curvatura y color para destacar tus pestañas naturales.",
+    category: "cejas-pestanas",
+    duration: 60,
+    price: 38000,
+  },
+  {
+    id: "promo-manos-semipermanente",
+    name: "Semipermanente manos",
+    description: "Un color duradero para lucir tus uñas de las manos.",
+    category: "promociones",
+    duration: 60,
+    price: 22000,
+  },
+  {
+    id: "promo-manos-pies",
+    name: "Semipermanente manos + pies",
+    description: "Color semipermanente para uñas de manos y pies.",
+    category: "promociones",
+    duration: 60,
+    price: 40000,
+  },
+  {
+    id: "promo-capping-pies",
+    name: "Capping manos + semi pies",
+    description: "Refuerzo para manos y semipermanente en las uñas de los pies.",
+    category: "promociones",
+    duration: 60,
+    price: 50000,
+  },
+  {
+    id: "promo-laminado-lifting",
+    name: "Laminado de cejas + Lifting de pestañas",
+    description: "Cejas peinadas y pestañas realzadas en una misma visita.",
+    category: "promociones",
+    duration: 60,
+    price: 55000,
+  },
+];
+
+export const legacyAppointmentServiceNames: Record<string, string> = {
+  "01": "Esmaltado semipermanente",
+  "02": "Kapping gel",
+  "03": "Soft gel + diseño",
+  "04": "Manicuría clásica",
+  "05": "Perfilado de cejas",
+  "06": "Lifting de pestañas",
+};
 
 export const appointmentWorkingDays = [1, 2, 3, 4, 5, 6];
-export const appointmentOpeningTime = 9 * 60;
+export const appointmentOpeningTime = 8 * 60;
 export const appointmentClosingTime = 22 * 60;
 export const appointmentBufferMinutes = 15;
 
@@ -72,8 +203,7 @@ export function isAppointmentTimeWithinBusinessHours(
   if (
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
     !Number.isInteger(durationMinutes) ||
-    durationMinutes < 15 ||
-    durationMinutes > maximumAppointmentDuration
+    durationMinutes < 15
   ) {
     return false;
   }
