@@ -8,6 +8,7 @@ import {
   FiRefreshCw,
   FiX,
 } from "react-icons/fi";
+import Loading from "@/components/Loading";
 import {
   appointmentServices,
   legacyAppointmentServiceNames,
@@ -26,6 +27,15 @@ type AdminAppointment = {
   customer_phone: string | null;
   status: "pending_review" | "confirmed";
   created_at: string;
+  payment_status:
+    | "PENDING"
+    | "SUCCESS"
+    | "OVERPAID"
+    | "UNDERPAID"
+    | "EXPIRED"
+    | null;
+  payment_amount: number | null;
+  payment_expires_at: string | null;
 };
 
 type AppointmentFilter = "pending_review" | "confirmed" | "all";
@@ -61,6 +71,7 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [busyAppointmentId, setBusyAppointmentId] = useState<string | null>(
     null,
   );
@@ -206,6 +217,7 @@ export default function AdminDashboard() {
 
   async function signOut() {
     setIsLoading(true);
+    setIsSigningOut(true);
     setMessage("");
 
     try {
@@ -225,6 +237,7 @@ export default function AdminDashboard() {
       );
     } finally {
       setIsLoading(false);
+      setIsSigningOut(false);
     }
   }
 
@@ -290,7 +303,7 @@ export default function AdminDashboard() {
   if (isCheckingSession) {
     return (
       <main className={styles.page}>
-        <p role="status">Verificando acceso...</p>
+        <Loading label="Verificando acceso..." />
       </main>
     );
   }
@@ -315,7 +328,11 @@ export default function AdminDashboard() {
               required
             />
             <button type="submit" disabled={isLoading || !password}>
-              {isLoading ? "Ingresando..." : "Ingresar"}
+              {isLoading ? (
+                <Loading label="Ingresando..." inline />
+              ) : (
+                "Ingresar"
+              )}
             </button>
           </form>
           {message && (
@@ -357,8 +374,14 @@ export default function AdminDashboard() {
             onClick={() => void signOut()}
             disabled={isLoading}
           >
-            <FiLogOut aria-hidden="true" />
-            Salir
+            {isSigningOut ? (
+              <Loading label="Cerrando sesión..." inline />
+            ) : (
+              <>
+                <FiLogOut aria-hidden="true" />
+                Salir
+              </>
+            )}
           </button>
         </div>
       </header>
@@ -389,9 +412,9 @@ export default function AdminDashboard() {
         </p>
       )}
       {isLoading ? (
-        <p className={styles.emptyState} role="status">
-          Cargando reservas...
-        </p>
+        <div className={styles.emptyState}>
+          <Loading label="Cargando reservas..." />
+        </div>
       ) : visibleAppointments.length === 0 ? (
         <p className={styles.emptyState}>
           {filter === "pending_review"
@@ -410,6 +433,9 @@ export default function AdminDashboard() {
               .filter((name): name is string => Boolean(name));
             const isPending = appointment.status === "pending_review";
             const isBusy = busyAppointmentId === appointment.id;
+            const canConfirm =
+              appointment.payment_expires_at === null ||
+              appointment.payment_status === "SUCCESS";
 
             return (
               <article key={appointment.id} className={styles.appointmentCard}>
@@ -445,6 +471,22 @@ export default function AdminDashboard() {
                     <dt>Total</dt>
                     <dd>{formatAmount(appointment.total_price)}</dd>
                   </div>
+                  {appointment.payment_expires_at && (
+                    <div>
+                      <dt>Seña</dt>
+                      <dd>
+                        {appointment.payment_status === "SUCCESS"
+                          ? `Acreditada · ${formatAmount(appointment.payment_amount ?? 0)}`
+                          : appointment.payment_status === "EXPIRED"
+                            ? "Vencida"
+                            : appointment.payment_status === "OVERPAID"
+                              ? "Importe mayor al solicitado"
+                              : appointment.payment_status === "UNDERPAID"
+                                ? "Importe incompleto"
+                                : "Pendiente de pago"}
+                      </dd>
+                    </div>
+                  )}
                   {appointment.customer_email && (
                     <div>
                       <dt>Email</dt>
@@ -477,13 +519,13 @@ export default function AdminDashboard() {
                       <button
                         type="button"
                         className={styles.confirmButton}
-                        disabled={isBusy}
+                        disabled={isBusy || !canConfirm}
                         onClick={() =>
                           void updateAppointment(appointment, "confirm")
                         }
                       >
                         <FiCheck aria-hidden="true" />
-                        Confirmar turno
+                        {canConfirm ? "Confirmar turno" : "Esperando el pago"}
                       </button>
                     )}
                     <button
@@ -498,9 +540,10 @@ export default function AdminDashboard() {
                       {isPending ? "Cancelar turno" : "Cancelar reserva"}
                     </button>
                     {isBusy && (
-                      <span className={styles.actionStatus} role="status">
-                        Actualizando...
-                      </span>
+                      <Loading
+                        className={styles.actionStatus}
+                        label="Actualizando..."
+                      />
                     )}
                   </div>
                 )}

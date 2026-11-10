@@ -34,6 +34,16 @@
   gap: 12px;
 }
 
+.availabilityLoading {
+  min-height: 44px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-stone);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-sand) 16%, transparent);
+  color: var(--color-brown);
+}
+
 .month {
   min-width: 0;
   min-height: 272px;

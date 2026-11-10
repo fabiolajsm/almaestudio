@@ -13,7 +13,48 @@ export type AdminAppointmentReservation = {
   calendar_event_id: string | null;
   status: "pending_review" | "confirmed";
   created_at: string;
+  payment_status:
+    | "PENDING"
+    | "SUCCESS"
+    | "OVERPAID"
+    | "UNDERPAID"
+    | "EXPIRED"
+    | null;
+  payment_amount: number | null;
+  payment_expires_at: string | null;
 };
+
+export type AppointmentPaymentReservation = {
+  id: string;
+  appointment_date: string;
+  start_time: string;
+  duration_minutes: number;
+  service_ids: string[];
+  total_price: number;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
+  calendar_event_id: string;
+  status: "pending_review" | "confirmed" | "cancelled";
+  talo_payment_id: string | null;
+  payment_url: string | null;
+  payment_status:
+    | "PENDING"
+    | "SUCCESS"
+    | "OVERPAID"
+    | "UNDERPAID"
+    | "EXPIRED"
+    | null;
+  payment_amount: number | null;
+  payment_expires_at: string | null;
+};
+
+export type TaloPaymentStatus =
+  | "PENDING"
+  | "SUCCESS"
+  | "OVERPAID"
+  | "UNDERPAID"
+  | "EXPIRED";
 
 export class SupabaseRequestError extends Error {
   constructor(
@@ -89,10 +130,11 @@ export async function callSupabaseRpc<T>(
 }
 
 export async function getAdminAppointmentReservations() {
+  await expirePendingAppointmentPayments();
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
     select:
-      "id,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id,status,created_at",
+      "id,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id,status,created_at,payment_status,payment_amount,payment_expires_at",
     status: "in.(pending_review,confirmed)",
     appointment_date: `gte.${getArgentinaDateKey(new Date())}`,
     order: "appointment_date.asc,start_time.asc",
@@ -149,10 +191,11 @@ export async function getAppointmentCalendarEventId(appointmentId: string) {
 }
 
 export async function getAppointmentReservation(date: string, time: string) {
+  await expirePendingAppointmentPayments();
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
     select:
-      "id,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id",
+      "id,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id,status,talo_payment_id,payment_url,payment_status,payment_amount,payment_expires_at",
     appointment_date: `eq.${date}`,
     start_time: `eq.${time}:00`,
     status: "in.(pending_review,confirmed)",
@@ -184,14 +227,86 @@ export async function getAppointmentReservation(date: string, time: string) {
     customer_email: string;
     customer_phone: string;
     calendar_event_id: string;
+    status: "pending_review" | "confirmed";
+    talo_payment_id: string | null;
+    payment_url: string | null;
+    payment_status: TaloPaymentStatus | null;
+    payment_amount: number | null;
+    payment_expires_at: string | null;
   }>;
   return rows[0] ?? null;
+}
+
+export async function getAppointmentPayment(appointmentId: string) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const query = new URLSearchParams({
+    select:
+      "id,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id,status,talo_payment_id,payment_url,payment_status,payment_amount,payment_expires_at",
+    id: `eq.${appointmentId}`,
+    limit: "1",
+  });
+  const response = await fetch(
+    `${url}/rest/v1/appointment_reservations?${query.toString()}`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: "Bearer " + serviceRoleKey,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await getErrorDetails(response);
+    throw new SupabaseRequestError(error.message, response.status, error.code);
+  }
+
+  const rows = (await response.json()) as AppointmentPaymentReservation[];
+  return rows[0] ?? null;
+}
+
+export async function saveAppointmentPayment({
+  appointmentId,
+  paymentId,
+  paymentUrl,
+  paymentStatus,
+  paymentAmount,
+  paymentExpiresAt,
+}: {
+  appointmentId: string;
+  paymentId: string;
+  paymentUrl: string | null;
+  paymentStatus: TaloPaymentStatus;
+  paymentAmount: number | null;
+  paymentExpiresAt: string | null;
+}) {
+  const [result] = await callSupabaseRpc<Array<{ appointment_id: string }>>(
+    "saveAppoinmentPayment",
+    {
+      p_appointment_id: appointmentId,
+      p_payment_id: paymentId,
+      p_payment_url: paymentUrl,
+      p_payment_status: paymentStatus,
+      p_payment_amount: paymentAmount,
+      p_payment_expires_at: paymentExpiresAt,
+    },
+  );
+
+  if (result?.appointment_id !== appointmentId) {
+    throw new Error("Supabase no confirmó la actualización del pago.");
+  }
+}
+
+export async function expirePendingAppointmentPayments() {
+  await callSupabaseRpc<number>("expirePendingAppoinmentPayments", {});
 }
 
 export async function getActiveAppointmentReservations(
   startDate: string,
   endDate: string,
 ) {
+  await expirePendingAppointmentPayments();
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
     select: "appointment_date,start_time,duration_minutes",

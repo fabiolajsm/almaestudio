@@ -139,6 +139,16 @@
   color: var(--color-brown);
 }
 
+.contactForm input[aria-invalid="true"] {
+  border-color: #8a2f2f;
+}
+
+.fieldError {
+  color: #8a2f2f;
+  font-size: var(--font-size-small-mobile);
+  font-weight: 400;
+}
+
 .contactForm input:focus-visible {
   outline: 2px solid var(--color-brown);
   outline-offset: 2px;
@@ -147,6 +157,12 @@
 .contactStep {
   display: grid;
   gap: 20px;
+}
+
+.paymentPanel {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
 }
 
 .holdNotice,
@@ -250,7 +266,8 @@
   }
 
   .holdNotice,
-  .confirmationMessage {
+  .confirmationMessage,
+  .paymentPanel {
     font-size: var(--font-size-small-mobile);
   }
 }

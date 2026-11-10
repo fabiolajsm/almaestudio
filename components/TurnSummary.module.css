@@ -5,6 +5,7 @@
   background: color-mix(in srgb, var(--color-cream) 55%, transparent);
   color: var(--color-ink);
   font-family: var(--font-poppins);
+  font-size: var(--font-size-small);
 }
 
 .eyebrow {

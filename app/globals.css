@@ -84,6 +84,11 @@ a {
   position: relative;
   min-width: 0;
   overflow: hidden;
+  animation: landing-photo-in 900ms cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.about-image-right {
+  animation-delay: 200ms;
 }
 
 .about-photo {
@@ -131,6 +136,7 @@ a {
   font-family: var(--font-poppins);
   font-size: var(--font-size-medium);
   font-weight: 500;
+  animation: landing-text-in 800ms cubic-bezier(.22, 1, .36, 1) 200ms both;
 }
 
 .about-content h1 {
@@ -141,6 +147,7 @@ a {
   font-size: var(--font-size-xlarge);
   font-weight: 500;
   line-height: 1;
+  animation: landing-text-in 800ms cubic-bezier(.22, 1, .36, 1) 320ms both;
 }
 
 .about-content h1 span {
@@ -154,6 +161,7 @@ a {
   font-family: var(--font-poppins);
   color: var(--color-brown);
   font-size: var(--font-size-medium);
+  animation: landing-text-in 800ms cubic-bezier(.22, 1, .36, 1) 440ms both;
 }
 
 .about-scroll-link {
@@ -166,8 +174,31 @@ a {
   font-family: var(--font-seasons);
   font-size: var(--font-size-small);
   font-style: italic;
-  text-decoration: underline;
-  text-underline-offset: 10px;
+  position: relative;
+  transition: transform 250ms ease;
+}
+
+.about-scroll-link::after {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  content: "";
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 250ms ease;
+}
+
+.about-scroll-link:hover,
+.about-scroll-link:focus-visible {
+  transform: translateX(4px);
+}
+
+.about-scroll-link:hover::after,
+.about-scroll-link:focus-visible::after {
+  transform: scaleX(1);
 }
 
 .about-scroll-link span {
@@ -316,6 +347,50 @@ a {
   50% {
     opacity: 1;
     transform: scale(1.15) rotate(12deg);
+  }
+}
+
+@keyframes landing-text-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes landing-photo-in {
+  from {
+    opacity: 0;
+    transform: scale(.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-image,
+  .about-kicker,
+  .about-content h1,
+  .about-description {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .about-scroll-link,
+  .about-scroll-link::after {
+    transition: none;
+  }
+
+  .about-scroll-link::after {
+    transform: scaleX(1);
   }
 }
 

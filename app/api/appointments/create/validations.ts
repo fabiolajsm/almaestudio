@@ -4,6 +4,7 @@ import {
   isAppointmentWorkingDay,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
+import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
 
 type ValidationResult<T> =
   | { success: true; data: T }
@@ -120,23 +121,14 @@ export function validateAppointmentContact(
     return { success: false, error: "El pedido no tiene un formato válido." };
   }
 
-  const name = typeof value.name === "string" ? value.name.trim() : "";
-  const email = typeof value.email === "string" ? value.email.trim() : "";
-  const phone = typeof value.phone === "string" ? value.phone.trim() : "";
-
-  if (
-    name.length < 2 ||
-    name.length > 100 ||
-    email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-    phone.length < 8 ||
-    phone.length > 30
-  ) {
+  const { data, errors } = validateAppointmentContactFields(value);
+  const error = errors.name ?? errors.email ?? errors.phone;
+  if (error) {
     return {
       success: false,
-      error: "Revisá tu nombre y tus datos de contacto.",
+      error,
     };
   }
 
-  return { success: true, data: { name, email, phone } };
+  return { success: true, data };
 }

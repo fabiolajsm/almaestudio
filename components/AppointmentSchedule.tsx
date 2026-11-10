@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { isAppointmentTimeWithinBusinessHours } from "@/app/Appoinments/appointmentCatalog";
 import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
+import Loading from "./Loading";
 import styles from "./AppointmentSchedule.module.css";
 
 type AppointmentScheduleProps = {
@@ -321,8 +322,6 @@ export default function AppointmentSchedule({
     ? getAccessibleDate(getDateFromKey(selectedDate))
     : null;
 
-    console.log(availability, "avavavvavava")
-
   return (
     <section
       className={styles.schedule}
@@ -335,7 +334,14 @@ export default function AppointmentSchedule({
         </div>
       )}
 
-      <div className={styles.months}>
+      {isLoading && (
+        <Loading
+          className={styles.availabilityLoading}
+          label="Cargando días disponibles..."
+        />
+      )}
+
+      <div className={styles.months} aria-busy={isLoading}>
         {visibleMonths.map((month) => (
           <CalendarMonth
             key={`${month.getUTCFullYear()}-${month.getUTCMonth()}`}
@@ -378,9 +384,10 @@ export default function AppointmentSchedule({
             {availabilityError}
           </p>
         ) : isLoading ? (
-          <p className={styles.chooseDate} role="status">
-            Consultando disponibilidad...
-          </p>
+          <Loading
+            className={styles.chooseDate}
+            label="Cargando horarios disponibles..."
+          />
         ) : serviceDuration <= 0 ? (
           <p className={styles.chooseDate}>
             Elegí al menos un servicio para consultar los horarios.
@@ -416,11 +423,9 @@ export default function AppointmentSchedule({
         <p className={styles.chooseDate}>
           {availabilityError
             ? availabilityError
-            : isLoading
-              ? "Consultando disponibilidad..."
-              : serviceDuration <= 0
-                ? "Elegí al menos un servicio para consultar los horarios."
-                : "Elegí un día para consultar los horarios."}
+            : serviceDuration <= 0
+              ? "Elegí al menos un servicio para consultar los horarios."
+              : "Elegí un día para consultar los horarios."}
         </p>
       )}
       {formattedSelectedDate && (

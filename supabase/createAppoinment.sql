@@ -11,6 +11,15 @@ create table if not exists public.appointment_reservations (
   calendar_event_id text not null unique,
   status text not null default 'pending_review'
     check (status in ('pending_review', 'confirmed', 'cancelled')),
+  talo_payment_id text,
+  payment_url text,
+  payment_status text
+    constraint appointment_reservations_payment_status_check
+    check (payment_status in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED')),
+  payment_amount integer
+    constraint appointment_reservations_payment_amount_check
+    check (payment_amount is null or payment_amount > 0),
+  payment_expires_at timestamptz,
   created_at timestamptz not null default now(),
   constraint appointment_reservations_business_hours_check
     check (
@@ -34,6 +43,43 @@ create table if not exists public.appointment_reservations (
     )
     where (status in ('pending_review', 'confirmed'))
 );
+
+alter table public.appointment_reservations
+add column if not exists talo_payment_id text,
+add column if not exists payment_url text,
+add column if not exists payment_status text,
+add column if not exists payment_amount integer,
+add column if not exists payment_expires_at timestamptz;
+
+do $$
+begin
+if not exists (
+  select 1
+  from pg_constraint
+  where conname = 'appointment_reservations_payment_status_check'
+    and conrelid = 'public.appointment_reservations'::regclass
+) then
+  alter table public.appointment_reservations
+    add constraint appointment_reservations_payment_status_check
+    check (payment_status in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED'));
+end if;
+
+if not exists (
+  select 1
+  from pg_constraint
+  where conname = 'appointment_reservations_payment_amount_check'
+    and conrelid = 'public.appointment_reservations'::regclass
+) then
+  alter table public.appointment_reservations
+    add constraint appointment_reservations_payment_amount_check
+    check (payment_amount is null or payment_amount > 0);
+end if;
+end;
+$$;
+
+create unique index if not exists appointment_reservations_talo_payment_id_key
+on public.appointment_reservations (talo_payment_id)
+where talo_payment_id is not null;
 
 alter table public.appointment_reservations enable row level security;
 revoke all on public.appointment_reservations from anon, authenticated;
@@ -87,7 +133,8 @@ begin
     customer_name,
     customer_email,
     customer_phone,
-    calendar_event_id
+    calendar_event_id,
+    payment_expires_at
   )
   values (
     p_appointment_id,
@@ -99,8 +146,80 @@ begin
     trim(p_customer_name),
     trim(p_customer_email),
     trim(p_customer_phone),
-    p_calendar_event_id
+    p_calendar_event_id,
+    now() + interval '5 days'
   )
+  returning reservations.id;
+end;
+$$;
+
+create or replace function public.expirePendingAppoinmentPayments()
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  expired_count integer;
+begin
+  update public.appointment_reservations
+  set status = 'cancelled'
+  where status = 'pending_review'
+    and payment_expires_at <= now()
+    and payment_status is distinct from 'SUCCESS';
+
+  get diagnostics expired_count = row_count;
+  return expired_count;
+end;
+$$;
+
+create or replace function public.saveAppoinmentPayment(
+  p_appointment_id uuid,
+  p_payment_id text,
+  p_payment_url text,
+  p_payment_status text,
+  p_payment_amount integer,
+  p_payment_expires_at timestamptz
+)
+returns table (appointment_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_appointment_id is null
+    or coalesce(trim(p_payment_id), '') = ''
+    or p_payment_status not in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED')
+    or (p_payment_amount is not null and p_payment_amount <= 0) then
+    raise exception 'Invalid appointment payment' using errcode = '22023';
+  end if;
+
+  return query
+  update public.appointment_reservations as reservations
+  set talo_payment_id = coalesce(reservations.talo_payment_id, p_payment_id),
+      payment_url = coalesce(p_payment_url, reservations.payment_url),
+  payment_status = case
+    when reservations.payment_status = 'SUCCESS' then 'SUCCESS'
+    when p_payment_status = 'SUCCESS' then 'SUCCESS'
+    when reservations.payment_status = 'EXPIRED' then 'EXPIRED'
+    else p_payment_status
+  end,
+      payment_amount = coalesce(p_payment_amount, reservations.payment_amount),
+      payment_expires_at = coalesce(
+        p_payment_expires_at,
+        reservations.payment_expires_at
+      ),
+      status = case
+        when p_payment_status = 'EXPIRED'
+          and reservations.status = 'pending_review'
+        then 'cancelled'
+        else reservations.status
+      end
+  where reservations.id = p_appointment_id
+    and (
+      reservations.talo_payment_id is null
+      or reservations.talo_payment_id = p_payment_id
+    )
   returning reservations.id;
 end;
 $$;
@@ -128,4 +247,26 @@ grant execute on function public."createAppoinment"(
   text,
   text,
   text
+) to service_role;
+
+revoke all on function public.expirePendingAppoinmentPayments()
+  from public, anon, authenticated;
+grant execute on function public.expirePendingAppoinmentPayments()
+  to service_role;
+
+revoke all on function public.saveAppoinmentPayment(
+  uuid,
+  text,
+  text,
+  text,
+  integer,
+  timestamptz
+) from public, anon, authenticated;
+grant execute on function public.saveAppoinmentPayment(
+  uuid,
+  text,
+  text,
+  text,
+  integer,
+  timestamptz
 ) to service_role;

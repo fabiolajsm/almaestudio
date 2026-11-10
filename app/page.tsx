@@ -14,7 +14,7 @@ const actions = [
     number: "01",
     title: "Sacar turno",
     description:
-      "Elegí servicio, día y horario. Te lleva menos de dos minutos.",
+      "Elegí servicio, día y horario. Te lleva menos de cinco minutos.",
     href: "/Appoinments/Create",
     label: "Agendar un turno",
   },
