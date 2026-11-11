@@ -161,6 +161,7 @@ function getLocalDateTimeKey(date: string, time: string, durationMinutes: number
 
 export async function createCalendarAppointment({
   appointmentId,
+  reservationCode,
   date,
   time,
   durationMinutes,
@@ -168,6 +169,7 @@ export async function createCalendarAppointment({
   serviceNames,
 }: {
   appointmentId: string;
+  reservationCode: number;
   date: string;
   time: string;
   durationMinutes: number;
@@ -185,8 +187,8 @@ export async function createCalendarAppointment({
     },
     body: JSON.stringify({
       id: eventId,
-      summary: `Turno - ${customerName}`,
-      description: `Servicios: ${serviceNames.join(", ")}`,
+      summary: `Turno #${reservationCode} - ${customerName}`,
+      description: `Código de reserva: #${reservationCode}\nServicios: ${serviceNames.join(", ")}`,
       start: { dateTime: start, timeZone },
       end: { dateTime: end, timeZone },
       transparency: "opaque",

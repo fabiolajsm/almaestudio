@@ -1,6 +1,5 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import {
-  getGoogleCalendarAvailabilityByDate,
   getAvailableTimesByDate,
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
@@ -43,14 +42,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    const availability =
-      process.env.NODE_ENV === "development"
-        ? await getGoogleCalendarAvailabilityByDate(
-            startDate,
-            endDate,
-            durationMinutes,
-          )
-        : await getAvailableTimesByDate(startDate, endDate, durationMinutes);
+    const availability = await getAvailableTimesByDate(
+      startDate,
+      endDate,
+      durationMinutes,
+    );
 
     return Response.json(
       availability,

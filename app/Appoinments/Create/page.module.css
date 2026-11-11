@@ -159,13 +159,6 @@
   gap: 20px;
 }
 
-.paymentPanel {
-  display: grid;
-  justify-items: start;
-  gap: 14px;
-}
-
-.holdNotice,
 .confirmationMessage {
   padding: 14px 16px;
   border-radius: 12px;
@@ -173,11 +166,6 @@
   color: var(--color-ink);
   font-size: var(--font-size-small);
   line-height: 1.5;
-}
-
-.holdNotice {
-  font-weight: 600;
-  text-align: center;
 }
 
 .confirmationMessage {
@@ -265,9 +253,7 @@
     font-size: var(--font-size-large-mobile);
   }
 
-  .holdNotice,
-  .confirmationMessage,
-  .paymentPanel {
+  .confirmationMessage {
     font-size: var(--font-size-small-mobile);
   }
 }

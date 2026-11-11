@@ -1,8 +1,6 @@
 import { hasSameOrigin } from "@/lib/adminSession";
 import {
   getAdminAppointmentReservations,
-  getAppointmentPayment,
-  expirePendingAppointmentPayments,
   SupabaseRequestError,
   updateAdminAppointmentStatus,
 } from "@/lib/supabaseAdmin";
@@ -89,20 +87,6 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    await expirePendingAppointmentPayments();
-    const appointment = await getAppointmentPayment(body.appointmentId);
-    if (
-      !appointment ||
-      appointment.status !== "pending_review" ||
-      (appointment.payment_expires_at !== null &&
-        appointment.payment_status !== "SUCCESS")
-    ) {
-      return Response.json(
-        { error: "El turno debe tener la seña acreditada para confirmarlo." },
-        { status: 409 },
-      );
-    }
-
     const updated = await updateAdminAppointmentStatus(
       body.appointmentId,
       "confirmed",

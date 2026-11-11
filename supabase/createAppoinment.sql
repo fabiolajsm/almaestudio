@@ -1,5 +1,10 @@
+create sequence if not exists public.appointment_reservation_code_seq
+  start with 10000;
+
 create table if not exists public.appointment_reservations (
   id uuid primary key,
+  reservation_code bigint not null
+    default nextval('public.appointment_reservation_code_seq'::regclass),
   appointment_date date not null,
   start_time time without time zone not null,
   duration_minutes integer not null check (duration_minutes >= 15),
@@ -9,17 +14,8 @@ create table if not exists public.appointment_reservations (
   customer_email text not null,
   customer_phone text not null,
   calendar_event_id text not null unique,
-  status text not null default 'pending_review'
+  status text not null default 'confirmed'
     check (status in ('pending_review', 'confirmed', 'cancelled')),
-  talo_payment_id text,
-  payment_url text,
-  payment_status text
-    constraint appointment_reservations_payment_status_check
-    check (payment_status in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED')),
-  payment_amount integer
-    constraint appointment_reservations_payment_amount_check
-    check (payment_amount is null or payment_amount > 0),
-  payment_expires_at timestamptz,
   created_at timestamptz not null default now(),
   constraint appointment_reservations_business_hours_check
     check (
@@ -35,7 +31,7 @@ create table if not exists public.appointment_reservations (
   constraint appointment_reservations_active_times_excl
     exclude using gist (
       tsrange(
-        appointment_date + start_time - interval '15 minutes',
+        appointment_date + start_time,
         appointment_date + start_time
           + make_interval(mins => duration_minutes + 15),
         '[)'
@@ -45,44 +41,77 @@ create table if not exists public.appointment_reservations (
 );
 
 alter table public.appointment_reservations
-add column if not exists talo_payment_id text,
-add column if not exists payment_url text,
-add column if not exists payment_status text,
-add column if not exists payment_amount integer,
-add column if not exists payment_expires_at timestamptz;
+  drop constraint if exists appointment_reservations_active_times_excl;
 
-do $$
-begin
-if not exists (
-  select 1
-  from pg_constraint
-  where conname = 'appointment_reservations_payment_status_check'
-    and conrelid = 'public.appointment_reservations'::regclass
-) then
-  alter table public.appointment_reservations
-    add constraint appointment_reservations_payment_status_check
-    check (payment_status in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED'));
-end if;
+alter table public.appointment_reservations
+  add constraint appointment_reservations_active_times_excl
+    exclude using gist (
+      tsrange(
+        appointment_date + start_time,
+        appointment_date + start_time
+          + make_interval(mins => duration_minutes + 15),
+        '[)'
+      ) with &&
+    )
+    where (status in ('pending_review', 'confirmed'));
 
-if not exists (
-  select 1
-  from pg_constraint
-  where conname = 'appointment_reservations_payment_amount_check'
-    and conrelid = 'public.appointment_reservations'::regclass
-) then
-  alter table public.appointment_reservations
-    add constraint appointment_reservations_payment_amount_check
-    check (payment_amount is null or payment_amount > 0);
-end if;
-end;
-$$;
+drop function if exists public.expirePendingAppoinmentPayments();
+drop function if exists public.saveAppoinmentPayment(
+  uuid,
+  text,
+  text,
+  text,
+  integer,
+  timestamptz
+);
 
-create unique index if not exists appointment_reservations_talo_payment_id_key
-on public.appointment_reservations (talo_payment_id)
-where talo_payment_id is not null;
+alter table public.appointment_reservations
+  add column if not exists reservation_code bigint;
+
+update public.appointment_reservations
+set reservation_code = nextval('public.appointment_reservation_code_seq'::regclass)
+where reservation_code is null;
+
+select setval(
+  'public.appointment_reservation_code_seq'::regclass,
+  greatest(coalesce(max(reservation_code), 9999), 9999),
+  true
+)
+from public.appointment_reservations;
+
+alter table public.appointment_reservations
+  alter column reservation_code
+    set default nextval('public.appointment_reservation_code_seq'::regclass),
+  alter column reservation_code set not null,
+  alter column status set default 'confirmed',
+  drop column if exists talo_payment_id,
+  drop column if exists payment_url,
+  drop column if exists payment_status,
+  drop column if exists payment_amount,
+  drop column if exists payment_expires_at;
+
+create unique index if not exists appointment_reservations_reservation_code_key
+on public.appointment_reservations (reservation_code);
+
+update public.appointment_reservations
+set status = 'confirmed'
+where status = 'pending_review';
 
 alter table public.appointment_reservations enable row level security;
 revoke all on public.appointment_reservations from anon, authenticated;
+
+drop function if exists public."createAppoinment"(
+  uuid,
+  date,
+  time without time zone,
+  text[],
+  integer,
+  integer,
+  text,
+  text,
+  text,
+  text
+);
 
 create or replace function public."createAppoinment"(
   p_appointment_id uuid,
@@ -96,7 +125,7 @@ create or replace function public."createAppoinment"(
   p_customer_phone text,
   p_calendar_event_id text
 )
-returns table (appointment_id uuid)
+returns table (appointment_id uuid, reservation_code bigint)
 language plpgsql
 security definer
 set search_path = public
@@ -125,6 +154,7 @@ begin
   return query
   insert into public.appointment_reservations as reservations (
     id,
+    reservation_code,
     appointment_date,
     start_time,
     duration_minutes,
@@ -133,11 +163,11 @@ begin
     customer_name,
     customer_email,
     customer_phone,
-    calendar_event_id,
-    payment_expires_at
+    calendar_event_id
   )
   values (
     p_appointment_id,
+    default,
     p_appointment_date,
     p_start_time,
     p_duration_minutes,
@@ -146,81 +176,9 @@ begin
     trim(p_customer_name),
     trim(p_customer_email),
     trim(p_customer_phone),
-    p_calendar_event_id,
-    now() + interval '5 days'
+    p_calendar_event_id
   )
-  returning reservations.id;
-end;
-$$;
-
-create or replace function public.expirePendingAppoinmentPayments()
-returns integer
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  expired_count integer;
-begin
-  update public.appointment_reservations
-  set status = 'cancelled'
-  where status = 'pending_review'
-    and payment_expires_at <= now()
-    and payment_status is distinct from 'SUCCESS';
-
-  get diagnostics expired_count = row_count;
-  return expired_count;
-end;
-$$;
-
-create or replace function public.saveAppoinmentPayment(
-  p_appointment_id uuid,
-  p_payment_id text,
-  p_payment_url text,
-  p_payment_status text,
-  p_payment_amount integer,
-  p_payment_expires_at timestamptz
-)
-returns table (appointment_id uuid)
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if p_appointment_id is null
-    or coalesce(trim(p_payment_id), '') = ''
-    or p_payment_status not in ('PENDING', 'SUCCESS', 'OVERPAID', 'UNDERPAID', 'EXPIRED')
-    or (p_payment_amount is not null and p_payment_amount <= 0) then
-    raise exception 'Invalid appointment payment' using errcode = '22023';
-  end if;
-
-  return query
-  update public.appointment_reservations as reservations
-  set talo_payment_id = coalesce(reservations.talo_payment_id, p_payment_id),
-      payment_url = coalesce(p_payment_url, reservations.payment_url),
-  payment_status = case
-    when reservations.payment_status = 'SUCCESS' then 'SUCCESS'
-    when p_payment_status = 'SUCCESS' then 'SUCCESS'
-    when reservations.payment_status = 'EXPIRED' then 'EXPIRED'
-    else p_payment_status
-  end,
-      payment_amount = coalesce(p_payment_amount, reservations.payment_amount),
-      payment_expires_at = coalesce(
-        p_payment_expires_at,
-        reservations.payment_expires_at
-      ),
-      status = case
-        when p_payment_status = 'EXPIRED'
-          and reservations.status = 'pending_review'
-        then 'cancelled'
-        else reservations.status
-      end
-  where reservations.id = p_appointment_id
-    and (
-      reservations.talo_payment_id is null
-      or reservations.talo_payment_id = p_payment_id
-    )
-  returning reservations.id;
+  returning reservations.id, reservations.reservation_code;
 end;
 $$;
 
@@ -247,26 +205,4 @@ grant execute on function public."createAppoinment"(
   text,
   text,
   text
-) to service_role;
-
-revoke all on function public.expirePendingAppoinmentPayments()
-  from public, anon, authenticated;
-grant execute on function public.expirePendingAppoinmentPayments()
-  to service_role;
-
-revoke all on function public.saveAppoinmentPayment(
-  uuid,
-  text,
-  text,
-  text,
-  integer,
-  timestamptz
-) from public, anon, authenticated;
-grant execute on function public.saveAppoinmentPayment(
-  uuid,
-  text,
-  text,
-  text,
-  integer,
-  timestamptz
 ) to service_role;

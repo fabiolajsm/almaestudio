@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { getArgentinaDateKey } from "../appointmentDates";
-import { appointmentDepositAmount } from "@/lib/appointmentPayment";
 import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
 
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
@@ -22,19 +21,6 @@ type ApiError = {
   error?: string;
 };
 
-type PaymentStatus =
-  | "PENDING"
-  | "SUCCESS"
-  | "OVERPAID"
-  | "UNDERPAID"
-  | "EXPIRED";
-
-type PaymentInfo = {
-  appointmentId: string;
-  paymentUrl: string;
-  expiresAt: string;
-};
-
 export default function CreateAppointmentPage() {
   const [today, setToday] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
@@ -43,12 +29,8 @@ export default function CreateAppointmentPage() {
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [reservationCode, setReservationCode] = useState<number | null>(null);
   const [formMessage, setFormMessage] = useState("");
-  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("PENDING");
-  const [isReservationCancelled, setIsReservationCancelled] = useState(false);
-  const [paymentCheckMessage, setPaymentCheckMessage] = useState("");
-  const [isCheckingPayment, setIsCheckingPayment] = useState(false);
   const [contact, setContact] = useState({ name: "", email: "", phone: "" });
   const [editedContactFields, setEditedContactFields] = useState<
     Partial<Record<keyof typeof contact, boolean>>
@@ -80,61 +62,6 @@ export default function CreateAppointmentPage() {
     },
   ][currentStep];
 
-  useEffect(() => {
-    if (
-      !paymentInfo ||
-      paymentStatus === "SUCCESS" ||
-      paymentStatus === "EXPIRED"
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const checkStatus = async () => {
-      try {
-        const response = await fetch(
-          `/api/appointments/payment-status?id=${encodeURIComponent(paymentInfo.appointmentId)}`,
-          { cache: "no-store", signal: controller.signal },
-        );
-        const result = (await response.json()) as ApiError & {
-          payment_status?: unknown;
-          reservation_status?: unknown;
-        };
-        if (!response.ok || !isPaymentStatus(result.payment_status)) {
-          throw new Error(
-            result.error || "No se pudo consultar el estado del pago.",
-          );
-        }
-
-        setPaymentStatus(result.payment_status);
-        setIsReservationCancelled(result.reservation_status === "cancelled");
-        setPaymentCheckMessage("");
-        if (
-          result.payment_status === "SUCCESS" &&
-          result.reservation_status !== "cancelled"
-        ) {
-          setIsSubmitted(true);
-        }
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-        setPaymentCheckMessage(
-          error instanceof Error
-            ? error.message
-            : "No se pudo consultar el estado del pago.",
-        );
-      }
-    };
-
-    void checkStatus();
-    const intervalId = window.setInterval(() => void checkStatus(), 5000);
-    return () => {
-      controller.abort();
-      window.clearInterval(intervalId);
-    };
-  }, [paymentInfo, paymentStatus]);
-
   return (
     <main className="site-shell">
       <SiteHeader />
@@ -147,7 +74,7 @@ export default function CreateAppointmentPage() {
         <div className={styles.workflow}>
           <ol className={styles.stepper} aria-label="Pasos para sacar turno">
             {steps.map((step, index) => {
-              const isComplete = index < currentStep;
+              const isComplete = index < currentStep || (isSubmitted && index === currentStep);
               const isCurrent = index === currentStep;
 
               return (
@@ -161,8 +88,7 @@ export default function CreateAppointmentPage() {
                     disabled={
                       !isComplete ||
                       isBusy ||
-                      isSubmitted ||
-                      paymentInfo !== null
+                      isSubmitted
                     }
                     onClick={() => void goToStep(index)}
                   >
@@ -217,79 +143,21 @@ export default function CreateAppointmentPage() {
 
             {currentStep === 2 && (
               <div className={styles.contactStep}>
-                {paymentStatus === "SUCCESS" && isReservationCancelled ? (
-                  <p className={styles.formMessage} role="alert">
-                    El pago se acreditó, pero el horario ya no está reservado.
-                    Contactanos para resolverlo.
-                  </p>
-                ) : paymentStatus === "SUCCESS" ? (
+                {isSubmitted ? (
                   <p className={styles.confirmationMessage} role="status">
-                    Recibimos la seña de
-                    {formatAmount(appointmentDepositAmount)}. La solicitud quedó
-                    pendiente de confirmación y te contactaremos por WhatsApp.
+                    <strong>¡Tu turno fue agendado con éxito!</strong>
+                    <br />
+                    Código de reserva: <strong>#{reservationCode}</strong>
+                    <br />
+                    ⚠️ <strong>Guardá este código:</strong> Es muy importante
+                    que lo conserves, ya que lo vas a necesitar si querés
+                    modificar o cancelar tu reserva más adelante.
+                    <br />
+                    <em>
+                      (En breve vas a recibir un email con el detalle completo
+                      de tu turno)
+                    </em>
                   </p>
-                ) : paymentInfo ? (
-                  <div className={styles.paymentPanel}>
-                    {paymentStatus === "EXPIRED" ? (
-                      <>
-                        <p className={styles.formMessage} role="status">
-                          El plazo para pagar venció y el horario fue liberado.
-                          Elegí un nuevo horario para volver a solicitar el
-                          turno.
-                        </p>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={restartPaymentSelection}
-                        >
-                          Elegir otro horario
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className={styles.holdNotice} role="status">
-                          {paymentStatus === "PENDING"
-                            ? `El horario está reservado. Para completar la solicitud, aboná la seña de ${formatAmount(appointmentDepositAmount)} mediante transferencia.`
-                            : "Talo todavía no confirmó el importe exacto. Revisá la transferencia; el horario sigue reservado mientras el pago esté vigente."}
-                        </p>
-                        <p className={styles.stepDescription}>
-                          El pago vence el
-                          {new Intl.DateTimeFormat("es-AR", {
-                            dateStyle: "short",
-                            timeStyle: "short",
-                            timeZone: "America/Argentina/Buenos_Aires",
-                          }).format(new Date(paymentInfo.expiresAt))}
-                          .
-                        </p>
-                        <a
-                          className={styles.primaryButton}
-                          href={paymentInfo.paymentUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Continuar al pago de Talo
-                          <FiArrowRight aria-hidden="true" />
-                        </a>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          disabled={isCheckingPayment}
-                          onClick={() => void refreshPaymentStatus()}
-                        >
-                          {isCheckingPayment ? (
-                            <Loading label="Consultando..." inline />
-                          ) : (
-                            "Ya hice la transferencia"
-                          )}
-                        </button>
-                        {paymentCheckMessage && (
-                          <p className={styles.formMessage} role="alert">
-                            {paymentCheckMessage}
-                          </p>
-                        )}
-                      </>
-                    )}
-                  </div>
                 ) : (
                   <>
                     <form
@@ -423,20 +291,13 @@ export default function CreateAppointmentPage() {
                         )}
                       </label>
                     </form>
-                    <div className={styles.holdNotice}>
-                      Para confirmar tu turno, aboná una seña de{" "}
-                      {formatAmount(appointmentDepositAmount)} pesos mediante
-                      transferencia bancaria de forma 100% segura. Tu lugar
-                      quedará reservado durante 15 min hasta que se complete el
-                      pago.
-                    </div>
                   </>
                 )}
               </div>
             )}
 
             <div className={styles.stepActions}>
-              {currentStep > 0 && !isSubmitted && !paymentInfo && (
+              {currentStep > 0 && !isSubmitted && (
                 <button
                   type="button"
                   className={styles.secondaryButton}
@@ -449,6 +310,7 @@ export default function CreateAppointmentPage() {
               )}
               {currentStep < 2 ? (
                 <button
+                  key="continue"
                   type="button"
                   className={styles.primaryButton}
                   disabled={
@@ -466,13 +328,20 @@ export default function CreateAppointmentPage() {
                   {!isBusy && <FiArrowRight aria-hidden="true" />}
                 </button>
               ) : (
-                !isSubmitted &&
-                !paymentInfo && (
+                !isSubmitted && (
                   <button
+                    key="submit"
                     type="submit"
                     form="appointment-contact-form"
                     className={styles.primaryButton}
-                    disabled={isBusy}
+                    disabled={
+                      isBusy ||
+                      Boolean(
+                        contactErrors.name ||
+                          contactErrors.email ||
+                          contactErrors.phone,
+                      )
+                    }
                   >
                     {isBusy ? (
                       <Loading label="Enviando..." inline />
@@ -500,12 +369,6 @@ export default function CreateAppointmentPage() {
       </div>
     </main>
   );
-  function isPaymentStatus(value: unknown): value is PaymentStatus {
-    return (
-      typeof value === "string" &&
-      ["PENDING", "SUCCESS", "OVERPAID", "UNDERPAID", "EXPIRED"].includes(value)
-    );
-  }
 
   function toggleService(serviceId: string) {
     setSelectedServiceIds((currentServiceIds) =>
@@ -533,7 +396,7 @@ export default function CreateAppointmentPage() {
   }
 
   function goToStep(step: number) {
-    if (step < 0 || step >= currentStep || isSubmitted || paymentInfo) {
+    if (step < 0 || step >= currentStep || isSubmitted) {
       return;
     }
 
@@ -543,7 +406,6 @@ export default function CreateAppointmentPage() {
 
   async function submitAppointment(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-
     const { errors } = validateAppointmentContactFields(contact);
     const firstInvalidField = (["name", "email", "phone"] as const).find(
       (field) => errors[field],
@@ -577,17 +439,26 @@ export default function CreateAppointmentPage() {
       const result = (await response.json()) as ApiError & {
         status?: string;
         appointment_id?: string;
-        payment_url?: string;
-        payment_expires_at?: string;
-        payment_status?: PaymentStatus;
+        reservation_code?: number;
       };
+      const code = result.reservation_code;
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          setSelectedDate(null);
+          setSelectedTime(null);
+        }
+        throw new Error(
+          result.error || "No se pudo completar la reserva. Intentá nuevamente.",
+        );
+      }
 
       if (
-        !response.ok ||
-        !["payment_pending", "payment_success"].includes(result.status ?? "") ||
+        result.status !== "confirmed" ||
         !result.appointment_id ||
-        !result.payment_url ||
-        !result.payment_expires_at
+        typeof code !== "number" ||
+        !Number.isSafeInteger(code) ||
+        code <= 0
       ) {
         throw new Error(
           result.error ||
@@ -595,13 +466,8 @@ export default function CreateAppointmentPage() {
         );
       }
 
-      setPaymentInfo({
-        appointmentId: result.appointment_id,
-        paymentUrl: result.payment_url,
-        expiresAt: result.payment_expires_at,
-      });
-      setPaymentStatus(result.payment_status ?? "PENDING");
-      setIsSubmitted(result.payment_status === "SUCCESS");
+      setReservationCode(code);
+      setIsSubmitted(true);
     } catch (error) {
       setFormMessage(
         error instanceof Error
@@ -611,66 +477,5 @@ export default function CreateAppointmentPage() {
     } finally {
       setIsBusy(false);
     }
-  }
-
-  async function refreshPaymentStatus() {
-    if (!paymentInfo) {
-      return;
-    }
-
-    setIsCheckingPayment(true);
-    setPaymentCheckMessage("");
-    try {
-      const response = await fetch(
-        `/api/appointments/payment-status?id=${encodeURIComponent(paymentInfo.appointmentId)}`,
-        { cache: "no-store" },
-      );
-      const result = (await response.json()) as ApiError & {
-        payment_status?: unknown;
-        reservation_status?: unknown;
-      };
-      if (!response.ok || !isPaymentStatus(result.payment_status)) {
-        throw new Error(
-          result.error || "No se pudo consultar el estado del pago.",
-        );
-      }
-
-      setPaymentStatus(result.payment_status);
-      setIsReservationCancelled(result.reservation_status === "cancelled");
-      if (
-        result.payment_status === "SUCCESS" &&
-        result.reservation_status !== "cancelled"
-      ) {
-        setIsSubmitted(true);
-      }
-    } catch (error) {
-      setPaymentCheckMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo consultar el estado del pago.",
-      );
-    } finally {
-      setIsCheckingPayment(false);
-    }
-  }
-
-  function restartPaymentSelection() {
-    setPaymentInfo(null);
-    setPaymentStatus("PENDING");
-    setIsReservationCancelled(false);
-    setIsSubmitted(false);
-    setSelectedDate(null);
-    setSelectedTime(null);
-    setFormMessage("");
-    setPaymentCheckMessage("");
-    setCurrentStep(1);
-  }
-
-  function formatAmount(amount: number) {
-    return new Intl.NumberFormat("es-AR", {
-      style: "currency",
-      currency: "ARS",
-      maximumFractionDigits: 0,
-    }).format(amount);
   }
 }

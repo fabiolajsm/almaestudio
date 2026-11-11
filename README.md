@@ -22,16 +22,16 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Configurar reservas de turnos
 
-El flujo de creación guarda los turnos en Supabase y los crea en Google Calendar:
+El flujo de creación guarda las reservas confirmadas en Supabase y crea el evento en Google Calendar. A cada reserva se le asigna un código numérico único y permanente para identificarla. No requieren pago.
 
-1. En un proyecto Supabase nuevo, ejecutá una sola vez `supabase/createAppoinment.sql`. Crea la tabla de reservas y la función `createAppoinment`.
+1. En un proyecto Supabase nuevo, ejecutá `supabase/createAppoinment.sql`. Crea la tabla de reservas y la función `createAppoinment`.
 2. Copiá `.env.example` a `.env.local` y completá la URL y la clave `service_role` del proyecto. Esa clave es solo de servidor: no la uses en variables `NEXT_PUBLIC_*`.
 3. Configurá `ADMIN_PASSWORD` con una contraseña fuerte y `ADMIN_SESSION_SECRET` con al menos 32 bytes aleatorios. Podés generar el secreto con `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Son variables solo de servidor: no las subas al repositorio ni uses variables `NEXT_PUBLIC_*`.
 4. Reiniciá la aplicación después de cambiar las variables.
 
-Al enviar los datos de contacto, se genera un pago de seña por transferencia con Talo y se reserva el horario hasta el vencimiento del pago. Cuando Talo confirma el pago por webhook, se crea el evento en Google Calendar; después, la solicitud permanece pendiente hasta que se confirme o cancele desde el panel de administración.
+Si ya ejecutaste una versión anterior del script, volvé a ejecutarlo para agregar los códigos de reserva y quitar de Supabase los campos y funciones que usaba la integración de pagos. Se conservan las reservas existentes, se asignan códigos a las que no tenían y las que estaban pendientes quedan confirmadas.
 
-El panel privado está en `/admin`. Confirma solicitudes mediante `/api/admin/appointments` y cancela turnos mediante `/api/appointments/cancel`. La sesión de administración dura 8 horas y usa una cookie `HttpOnly`.
+El panel privado está en `/admin`. Desde allí se confirman las solicitudes y se cancelan los turnos. La sesión de administración dura 8 horas y usa una cookie `HttpOnly`.
 
 ## Conectar Google Calendar
 
@@ -43,18 +43,6 @@ La disponibilidad consulta los bloques libre/ocupado de `almaestudio.arg@gmail.c
 4. Reiniciá la aplicación después de configurar las variables. Si la agenda no está accesible, el selector informa el error y no permite completar una reserva sin verificar disponibilidad.
 
 Para probar Google Calendar localmente sin configurar Supabase, iniciá `npm run dev` y abrí `http://localhost:3000/api/appointments/calendar-test?start=AAAA-MM-DD&end=AAAA-MM-DD&duration=30`, reemplazando las fechas por una fecha futura válida. La respuesta muestra los bloques ocupados en `busyIntervals` y todos los horarios de inicio en `timeSlots`, marcados como disponibles u ocupados; esta ruta solo existe en desarrollo y no incluye reservas guardadas en la aplicación.
-
-## Conectar Talo
-
-La reserva requiere una seña fija de **$5.000 ARS** por transferencia. El estado se confirma consultando a Talo desde el webhook; no se confirma un turno solamente porque el cliente haya vuelto a la página.
-
-1. En el panel de Talo, obtené `TALO_CLIENT_ID`, `TALO_CLIENT_SECRET` y `TALO_USER_ID`.
-2. Configurá esas variables en `.env.local` (local) o en las variables de entorno del servidor. Dejá `TALO_ENVIRONMENT=sandbox` para probar; usá `production` únicamente con las credenciales de producción.
-3. Configurá `TALO_WEBHOOK_URL` con una URL HTTPS pública que apunte a `https://tu-dominio.com/api/webhooks/talo`. Para probar webhooks localmente, exponé el servidor con una URL HTTPS temporal (por ejemplo, ngrok) y configurá esa URL completa.
-4. Ejecutá nuevamente `supabase/createAppoinment.sql` en Supabase para agregar los campos y funciones de pagos; el script también sirve para instalaciones nuevas.
-5. Reiniciá la aplicación después de configurar las variables.
-
-La persona verá el enlace de pago de Talo y el vencimiento de la transferencia. Si el pago vence, el horario se libera. En el panel de administración la seña debe figurar como acreditada antes de confirmar la reserva.
 
 ## Learn More
 

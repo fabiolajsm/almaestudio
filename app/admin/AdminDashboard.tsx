@@ -17,6 +17,7 @@ import styles from "./page.module.css";
 
 type AdminAppointment = {
   id: string;
+  reservation_code: number;
   appointment_date: string;
   start_time: string;
   duration_minutes: number;
@@ -27,15 +28,6 @@ type AdminAppointment = {
   customer_phone: string | null;
   status: "pending_review" | "confirmed";
   created_at: string;
-  payment_status:
-    | "PENDING"
-    | "SUCCESS"
-    | "OVERPAID"
-    | "UNDERPAID"
-    | "EXPIRED"
-    | null;
-  payment_amount: number | null;
-  payment_expires_at: string | null;
 };
 
 type AppointmentFilter = "pending_review" | "confirmed" | "all";
@@ -433,9 +425,6 @@ export default function AdminDashboard() {
               .filter((name): name is string => Boolean(name));
             const isPending = appointment.status === "pending_review";
             const isBusy = busyAppointmentId === appointment.id;
-            const canConfirm =
-              appointment.payment_expires_at === null ||
-              appointment.payment_status === "SUCCESS";
 
             return (
               <article key={appointment.id} className={styles.appointmentCard}>
@@ -458,6 +447,10 @@ export default function AdminDashboard() {
 
                 <dl className={styles.details}>
                   <div>
+                    <dt>Código de reserva</dt>
+                    <dd>#{appointment.reservation_code}</dd>
+                  </div>
+                  <div>
                     <dt>Servicios</dt>
                     <dd>
                       {selectedServiceNames.join(" + ")}
@@ -471,22 +464,6 @@ export default function AdminDashboard() {
                     <dt>Total</dt>
                     <dd>{formatAmount(appointment.total_price)}</dd>
                   </div>
-                  {appointment.payment_expires_at && (
-                    <div>
-                      <dt>Seña</dt>
-                      <dd>
-                        {appointment.payment_status === "SUCCESS"
-                          ? `Acreditada · ${formatAmount(appointment.payment_amount ?? 0)}`
-                          : appointment.payment_status === "EXPIRED"
-                            ? "Vencida"
-                            : appointment.payment_status === "OVERPAID"
-                              ? "Importe mayor al solicitado"
-                              : appointment.payment_status === "UNDERPAID"
-                                ? "Importe incompleto"
-                                : "Pendiente de pago"}
-                      </dd>
-                    </div>
-                  )}
                   {appointment.customer_email && (
                     <div>
                       <dt>Email</dt>
@@ -519,13 +496,13 @@ export default function AdminDashboard() {
                       <button
                         type="button"
                         className={styles.confirmButton}
-                        disabled={isBusy || !canConfirm}
+                        disabled={isBusy}
                         onClick={() =>
                           void updateAppointment(appointment, "confirm")
                         }
                       >
                         <FiCheck aria-hidden="true" />
-                        {canConfirm ? "Confirmar turno" : "Esperando el pago"}
+                        Confirmar turno
                       </button>
                     )}
                     <button
