@@ -211,6 +211,54 @@ export async function createCalendarAppointment({
   return eventId;
 }
 
+export async function updateCalendarAppointment({
+  appointmentId,
+  reservationCode,
+  date,
+  time,
+  durationMinutes,
+  customerName,
+  serviceNames,
+}: {
+  appointmentId: string;
+  reservationCode: number;
+  date: string;
+  time: string;
+  durationMinutes: number;
+  customerName: string;
+  serviceNames: string[];
+}) {
+  const accessToken = await getAccessToken();
+  const eventId = getCalendarEventId(appointmentId);
+  const { start, end } = getLocalDateTimeKey(date, time, durationMinutes);
+  const response = await fetch(
+    `${calendarEventsUrl}/${encodeURIComponent(eventId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        summary: `Turno #${reservationCode} - ${customerName}`,
+        description: `Código de reserva: #${reservationCode}\nServicios: ${serviceNames.join(", ")}`,
+        start: { dateTime: start, timeZone },
+        end: { dateTime: end, timeZone },
+        transparency: "opaque",
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    throw new GoogleCalendarIntegrationError(
+      "No se pudo actualizar el evento del turno en Google Calendar.",
+      "unavailable",
+    );
+  }
+}
+
 export async function deleteCalendarAppointment(eventId: string) {
   const accessToken = await getAccessToken();
   const response = await fetch(
@@ -231,8 +279,77 @@ export async function deleteCalendarAppointment(eventId: string) {
   }
 }
 
-async function getCalendarBusyIntervals(start: Date, end: Date) {
+async function getCalendarBusyIntervals(
+  start: Date,
+  end: Date,
+  excludeEventId?: string,
+) {
   const accessToken = await getAccessToken();
+  if (excludeEventId) {
+    const query = new URLSearchParams({
+      timeMin: start.toISOString(),
+      timeMax: end.toISOString(),
+      singleEvents: "true",
+      orderBy: "startTime",
+    });
+    const response = await fetch(`${calendarEventsUrl}?${query.toString()}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      throw new GoogleCalendarIntegrationError(
+        "No se pudo consultar la agenda de Google Calendar.",
+        "unavailable",
+      );
+    }
+
+    const result = (await response.json()) as {
+      items?: Array<{
+        id?: string;
+        start?: { dateTime?: string; date?: string };
+        end?: { dateTime?: string; date?: string };
+      }>;
+    };
+    if (!Array.isArray(result.items)) {
+      throw new GoogleCalendarIntegrationError(
+        "Google Calendar devolvió una agenda inválida.",
+        "unavailable",
+      );
+    }
+
+    return result.items.flatMap((event) => {
+      if (event.id === excludeEventId) {
+        return [];
+      }
+
+      const startValue = event.start?.dateTime ?? event.start?.date;
+      const endValue = event.end?.dateTime ?? event.end?.date;
+      const startTime =
+        event.start?.dateTime && startValue
+          ? Date.parse(startValue)
+          : startValue
+            ? getLocalDateTime(startValue, "00:00").getTime()
+            : Number.NaN;
+      const endTime =
+        event.end?.dateTime && endValue
+          ? Date.parse(endValue)
+          : endValue
+            ? getLocalDateTime(endValue, "00:00").getTime()
+            : Number.NaN;
+
+      if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime <= startTime) {
+        throw new GoogleCalendarIntegrationError(
+          "Google Calendar devolvió un horario inválido.",
+          "unavailable",
+        );
+      }
+
+      return [{ start: startTime, end: endTime }];
+    });
+  }
+
   const response = await fetch(freeBusyUrl, {
     method: "POST",
     headers: {
@@ -293,10 +410,12 @@ async function getCalendarBusyIntervals(start: Date, end: Date) {
 async function getReservationBusyIntervals(
   startDate: string,
   endDate: string,
+  excludeAppointmentId?: string,
 ) {
   const reservations: BusyReservation[] = await getActiveAppointmentReservations(
     startDate,
     endDate,
+    excludeAppointmentId,
   );
 
   return reservations.map(
@@ -320,10 +439,18 @@ async function getBusyIntervals(
   end: Date,
   startDate: string,
   endDate: string,
+  excludedAppointment?: {
+    appointmentId: string;
+    calendarEventId: string | null;
+  },
 ) {
   const [calendarIntervals, reservationIntervals] = await Promise.all([
-    getCalendarBusyIntervals(start, end),
-    getReservationBusyIntervals(startDate, endDate),
+    getCalendarBusyIntervals(start, end, excludedAppointment?.calendarEventId ?? undefined),
+    getReservationBusyIntervals(
+      startDate,
+      endDate,
+      excludedAppointment?.appointmentId,
+    ),
   ]);
 
   return [...calendarIntervals, ...reservationIntervals];
@@ -501,6 +628,10 @@ export async function isAppointmentSlotAvailable(
   date: string,
   time: string,
   durationMinutes: number,
+  excludedAppointment?: {
+    appointmentId: string;
+    calendarEventId: string | null;
+  },
 ) {
   const appointmentStart = getLocalDateTime(date, time).getTime();
   if (
@@ -523,19 +654,8 @@ export async function isAppointmentSlotAvailable(
     new Date(appointmentEnd + slotBufferMilliseconds),
     date,
     date,
+    excludedAppointment,
   );
-
-  console.log(
-  "Horarios ocupados en Google Calendar:",
-  busyIntervals.map(({ start, end }) => ({
-    inicio: new Date(start).toLocaleString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-    }),
-    fin: new Date(end).toLocaleString("es-AR", {
-      timeZone: "America/Argentina/Buenos_Aires",
-    }),
-  })),
-);
 
   return getAppointmentTimeSlots(date, durationMinutes, busyIntervals).some(
     (slot) => slot.time === time && slot.status === "available",

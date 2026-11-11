@@ -1,36 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { FiCheck, FiMapPin, FiX } from "react-icons/fi";
+import type { SubmitEvent } from "react";
+import Link from "next/link";
+import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
+import Loading from "@/components/Loading";
 import Services, { services } from "@/components/Services";
+import TurnSummary from "@/components/TurnSummary";
 import styles from "./page.module.css";
 
-function formatAppointmentDate(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  const weekdays = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
-  const months = [
-    "ene",
-    "feb",
-    "mar",
-    "abr",
-    "may",
-    "jun",
-    "jul",
-    "ago",
-    "sep",
-    "oct",
-    "nov",
-    "dic",
-  ];
+type AppointmentSummary = {
+  reservationCode: number;
+  appointmentDate: string;
+  startTime: string;
+  durationMinutes: number;
+  serviceIds: string[];
+  totalPrice: number;
+  customerName: string | null;
+};
 
-  return `${weekdays[date.getUTCDay()]} ${date.getUTCDate()} ${months[date.getUTCMonth()]}`;
-}
-
-const initialServiceIds = ["mani-semipermanente", "cejas-perfilado"];
+type ApiResult = {
+  error?: unknown;
+  modified?: unknown;
+  appointment?: AppointmentSummary;
+};
 
 export default function ModifyAppointmentClient({
   today,
@@ -39,47 +35,108 @@ export default function ModifyAppointmentClient({
   today: string;
   initialDate: string;
 }) {
-  const [selectedServiceIds, setSelectedServiceIds] =
-    useState<string[]>(initialServiceIds);
+  const [reservationCode, setReservationCode] = useState("");
+  const [email, setEmail] = useState("");
+  const [appointment, setAppointment] = useState<AppointmentSummary | null>(
+    null,
+  );
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [selectedTime, setSelectedTime] = useState("");
-  const [savedServiceIds, setSavedServiceIds] =
-    useState<string[]>(initialServiceIds);
-  const [savedDate, setSavedDate] = useState(initialDate);
-  const [savedTime, setSavedTime] = useState("15:30");
+  const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
 
-  const savedServices = services.filter((service) =>
-    savedServiceIds.includes(service.id),
+  const selectedServices = services.filter((service) =>
+    selectedServiceIds.includes(service.id),
   );
-  const totalDuration = savedServices.reduce(
+  const selectedDuration = selectedServices.reduce(
     (total, service) => total + service.duration,
     0,
   );
-  const selectedDuration = services
-    .filter((service) => selectedServiceIds.includes(service.id))
-    .reduce((total, service) => total + service.duration, 0);
-  const serviceNames = savedServices.map((service) => service.name).join(" + ");
 
-  function saveChanges() {
-    if (selectedServiceIds.length === 0 || !selectedDate || !selectedTime) {
-      setMessage("Elegí al menos un servicio, un día y un horario.");
-      return;
+  async function submitAppointmentAction(action: "lookup" | "modify") {
+    setIsBusy(true);
+    setMessage("");
+    setIsSaved(false);
+
+    try {
+      const response = await fetch("/api/appointments/modify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action,
+          reservationCode,
+          email,
+          date: selectedDate,
+          time: selectedTime,
+          serviceIds: selectedServiceIds,
+        }),
+      });
+      const result = (await response.json()) as ApiResult;
+
+      if (action === "lookup" && response.ok && result.appointment) {
+        setAppointment(result.appointment);
+        setSelectedServiceIds(result.appointment.serviceIds);
+        setSelectedDate(result.appointment.appointmentDate);
+        setSelectedTime(result.appointment.startTime.slice(0, 5));
+        return;
+      }
+
+      if (action === "modify" && response.ok && result.modified === true) {
+        setAppointment((current) =>
+          current
+            ? {
+                ...current,
+                serviceIds: selectedServiceIds,
+                appointmentDate: selectedDate,
+                startTime: selectedTime,
+                durationMinutes: selectedDuration,
+                totalPrice: selectedServices.reduce(
+                  (total, service) => total + service.price,
+                  0,
+                ),
+              }
+            : current,
+        );
+        setIsSaved(true);
+        setMessage("Los datos de tu turno se actualizaron correctamente.");
+        return;
+      }
+
+      throw new Error(
+        typeof result.error === "string"
+          ? result.error
+          : action === "lookup"
+            ? "No se pudo encontrar la reserva. Intentá nuevamente."
+            : "No se pudo guardar la modificación. Intentá nuevamente.",
+      );
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo completar la operación. Intentá nuevamente.",
+      );
+    } finally {
+      setIsBusy(false);
     }
+  }
 
-    setSavedServiceIds(selectedServiceIds);
-    setSavedDate(selectedDate);
-    setSavedTime(selectedTime);
-    setMessage(
-      "Los cambios se actualizaron en esta vista. Para guardar la reserva, falta conectar la agenda.",
-    );
+  function findAppointment(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void submitAppointmentAction("lookup");
   }
 
   function discardChanges() {
-    setSelectedServiceIds(savedServiceIds);
-    setSelectedDate(savedDate);
-    setSelectedTime(savedTime);
+    if (!appointment) {
+      return;
+    }
+
+    setSelectedServiceIds(appointment.serviceIds);
+    setSelectedDate(appointment.appointmentDate);
+    setSelectedTime(appointment.startTime.slice(0, 5));
     setMessage("");
+    setIsSaved(false);
   }
 
   return (
@@ -88,125 +145,197 @@ export default function ModifyAppointmentClient({
       <AppointmentHeader
         actionLabel="Modificar turno"
         title="Hacé lugar a un cambio."
-        description="Podés cambiar el servicio, la fecha o el horario de tu reserva actual."
+        description="Buscá tu reserva con el código y el email asociado para modificarla."
       />
 
-      <div className={styles.modifyLayout}>
-        <section className={styles.reservation} aria-labelledby="reservation-title">
-          <div className={styles.reservationHeader}>
-            <div>
-              <p className={styles.reservationCode}>Turno #ALM-2406</p>
-              <h2 id="reservation-title">Danae , tu reserva</h2>
-            </div>
-            <span className={styles.status}>
-              <span aria-hidden="true" />
-              Confirmado
-            </span>
-          </div>
-
-          <dl className={styles.reservationDetails}>
-            <div>
-              <dt>Servicios</dt>
-              <dd>{serviceNames}</dd>
-              <small>{totalDuration} min</small>
-            </div>
-            <div>
-              <dt>Fecha</dt>
-              <dd>{formatAppointmentDate(savedDate)}</dd>
-            </div>
-            <div>
-              <dt>Hora</dt>
-              <dd>{savedTime} hs</dd>
-            </div>
-          </dl>
-
-          <p className={styles.location}>
-            <FiMapPin aria-hidden="true" />
-            Thames 1684, Palermo · Lunes a sábado, 8 a 22 h
-          </p>
-
-          <div className={styles.reservationActions}>
-            <a className={styles.primaryLink} href="#edit-appointment">
-              Cambiar servicio, fecha u horario
-            </a>
-            <a className={styles.secondaryLink} href="/Appoinments/Delete">
-              Cancelar turno
-            </a>
-          </div>
-        </section>
-
-        <section
-          id="edit-appointment"
-          className={styles.editor}
-          aria-labelledby="edit-title"
-        >
+      {!appointment ? (
+        <section className={styles.lookup} aria-labelledby="lookup-title">
           <div className={styles.editorHeading}>
             <p className={styles.eyebrow}>Modificar turno</p>
-            <h2 id="edit-title">Ajustá tu próximo momento.</h2>
-            <p>Los cambios se aplicarán a tu reserva actual.</p>
+            <h2 id="lookup-title">Encontrá tu reserva.</h2>
           </div>
-
-          <div className={styles.editorSection}>
-            <h3>Servicios</h3>
-            <Services
-              selectedServiceIds={selectedServiceIds}
-              onToggleService={(serviceId) => {
-                setSelectedServiceIds((currentIds) =>
-                  currentIds.includes(serviceId)
-                    ? currentIds.filter((id) => id !== serviceId)
-                    : [...currentIds, serviceId],
-                );
-                setSelectedTime("");
-                setMessage("");
-              }}
-            />
-          </div>
-
-          <div className={styles.editorSection}>
-            <h3>Fecha y horario</h3>
-            <AppointmentSchedule
-              today={today}
-              serviceDuration={selectedDuration}
+          <form className={styles.lookupForm} noValidate onSubmit={findAppointment}>
+            <label>
+              Código de reserva
+              <input
+                type="text"
+                name="reservationCode"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="Ej.: 12345"
+                maxLength={15}
+                value={reservationCode}
+                onChange={(event) => {
+                  setReservationCode(event.currentTarget.value.replace(/\D/g, ""));
+                  setMessage("");
+                }}
+                required
+              />
+            </label>
+            <label>
+              Email asociado a la reserva
+              <input
+                type="email"
+                name="email"
+                autoComplete="email"
+                placeholder="tu@email.com"
+                maxLength={254}
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.currentTarget.value);
+                  setMessage("");
+                }}
+                required
+              />
+            </label>
+            {message && (
+              <p className={styles.message} role="alert">
+                {message}
+              </p>
+            )}
+            <div className={styles.editorActions}>
+              <button
+                type="submit"
+                className={styles.saveButton}
+                disabled={
+                  isBusy || reservationCode.length === 0 || email.trim() === ""
+                }
+              >
+                {isBusy ? (
+                  <Loading label="Buscando reserva..." inline />
+                ) : (
+                  <>
+                    Buscar reserva
+                    <FiArrowRight aria-hidden="true" />
+                  </>
+                )}
+              </button>
+              <Link className={styles.discardButton} href="/">
+                Volver al inicio
+              </Link>
+            </div>
+          </form>
+        </section>
+      ) : (
+        <div className={styles.modifyLayout}>
+          <section className={styles.reservation} aria-label="Resumen de la reserva">
+            <p className={styles.reservationCode}>
+              Turno #{appointment.reservationCode}
+              {appointment.customerName && ` · ${appointment.customerName}`}
+            </p>
+            <TurnSummary
+              services={selectedServices}
               selectedDate={selectedDate}
               selectedTime={selectedTime}
-              onSelectDate={(date) => {
-                setSelectedDate(date);
-                setSelectedTime("");
-                setMessage("");
-              }}
-              onSelectTime={(time) => {
-                setSelectedTime(time || "");
-                setMessage("");
-              }}
-              showHeading={false}
             />
-          </div>
+          </section>
 
-          <div className={styles.editorActions}>
-            <button
-              type="button"
-              className={styles.saveButton}
-              onClick={saveChanges}
-            >
-              <FiCheck aria-hidden="true" />
-              Guardar cambios
-            </button>
-            <button
-              type="button"
-              className={styles.discardButton}
-              onClick={discardChanges}
-            >
-              <FiX aria-hidden="true" />
-              No cambiar
-            </button>
-          </div>
-          {message && (
-            <p className={styles.message} role="status">
-              {message}
-            </p>
-          )}
-        </section>
-      </div>
+          <section
+            id="edit-appointment"
+            className={styles.editor}
+            aria-labelledby="edit-title"
+          >
+            <div className={styles.editorHeading}>
+              <p className={styles.eyebrow}>Modificar turno</p>
+              <h2 id="edit-title">Ajustá tu próximo momento.</h2>
+              <p>Elegí los servicios, el día o el horario que prefieras.</p>
+            </div>
+
+            <div className={styles.editorSection}>
+              <h3>Servicios</h3>
+              <Services
+                selectedServiceIds={selectedServiceIds}
+                onToggleService={(serviceId) => {
+                  setSelectedServiceIds((currentIds) =>
+                    currentIds.includes(serviceId)
+                      ? currentIds.filter((id) => id !== serviceId)
+                      : [...currentIds, serviceId],
+                  );
+                  setMessage("");
+                  setIsSaved(false);
+                }}
+              />
+            </div>
+
+            <div className={styles.editorSection}>
+              <h3>Fecha y horario</h3>
+              <AppointmentSchedule
+                today={today}
+                serviceDuration={selectedDuration}
+                selectedDate={selectedDate}
+                selectedTime={selectedTime}
+                onSelectDate={(date) => {
+                  setSelectedDate(date);
+                  setSelectedTime("");
+                  setMessage("");
+                  setIsSaved(false);
+                }}
+                onSelectTime={(time) => {
+                  setSelectedTime(time || "");
+                  setMessage("");
+                  setIsSaved(false);
+                }}
+                showHeading={false}
+              />
+            </div>
+
+            {message && (
+              <p
+                className={`${styles.message} ${isSaved ? styles.successMessage : ""}`}
+                role={isSaved ? "status" : "alert"}
+              >
+                {message}
+              </p>
+            )}
+
+            <div className={styles.editorActions}>
+              <button
+                type="button"
+                className={styles.saveButton}
+                disabled={
+                  isBusy ||
+                  selectedServiceIds.length === 0 ||
+                  !selectedDate ||
+                  !selectedTime
+                }
+                onClick={() => void submitAppointmentAction("modify")}
+              >
+                {isBusy ? (
+                  <Loading label="Guardando cambios..." inline />
+                ) : (
+                  <>
+                    <FiCheck aria-hidden="true" />
+                    Guardar cambios
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                className={styles.discardButton}
+                disabled={isBusy}
+                onClick={discardChanges}
+              >
+                <FiArrowLeft aria-hidden="true" />
+                Descartar cambios
+              </button>
+              <button
+                type="button"
+                className={styles.discardButton}
+                disabled={isBusy}
+                onClick={() => {
+                  setAppointment(null);
+                  setSelectedServiceIds([]);
+                  setSelectedTime("");
+                  setMessage("");
+                  setIsSaved(false);
+                }}
+              >
+                Buscar otra reserva
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

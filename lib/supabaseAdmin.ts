@@ -149,13 +149,11 @@ export async function getAppointmentCalendarEventId(appointmentId: string) {
   return rows[0]?.calendar_event_id ?? null;
 }
 
-export async function getAppointmentForCustomerCancellation(
-  reservationCode: number,
-) {
+export async function getAppointmentForCustomer(reservationCode: number) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
     select:
-      "id,reservation_code,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,calendar_event_id",
+      "id,reservation_code,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,customer_phone,calendar_event_id",
     reservation_code: `eq.${reservationCode}`,
     status: "in.(pending_review,confirmed)",
     limit: "1",
@@ -187,8 +185,50 @@ export async function getAppointmentForCustomerCancellation(
     total_price: number;
     customer_name: string | null;
     customer_email: string | null;
+    customer_phone: string | null;
     calendar_event_id: string | null;
   }>;
+  return rows[0] ?? null;
+}
+
+export async function updateAppointmentReservation(
+  appointmentId: string,
+  appointment: {
+    appointment_date: string;
+    start_time: string;
+    duration_minutes: number;
+    service_ids: string[];
+    total_price: number;
+  },
+) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const query = new URLSearchParams({
+    id: `eq.${appointmentId}`,
+    status: "in.(pending_review,confirmed)",
+    select: "id",
+  });
+  const response = await fetch(
+    `${url}/rest/v1/appointment_reservations?${query.toString()}`,
+    {
+      method: "PATCH",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: "Bearer " + serviceRoleKey,
+        "Content-Type": "application/json",
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(appointment),
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await getErrorDetails(response);
+    throw new SupabaseRequestError(error.message, response.status, error.code);
+  }
+
+  const rows = (await response.json()) as Array<{ id: string }>;
   return rows[0] ?? null;
 }
 
@@ -266,6 +306,7 @@ export async function getAppointmentReservation(date: string, time: string) {
 export async function getActiveAppointmentReservations(
   startDate: string,
   endDate: string,
+  excludeAppointmentId?: string,
 ) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
@@ -274,6 +315,9 @@ export async function getActiveAppointmentReservations(
     order: "appointment_date.asc,start_time.asc",
   });
   query.set("and", `(appointment_date.gte.${startDate},appointment_date.lte.${endDate})`);
+  if (excludeAppointmentId) {
+    query.set("id", `not.eq.${excludeAppointmentId}`);
+  }
 
   const response = await fetch(
     `${url}/rest/v1/appointment_reservations?${query.toString()}`,

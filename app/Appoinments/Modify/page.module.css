@@ -5,6 +5,46 @@
   margin: 0 auto;
 }
 
+.lookup {
+  width: min(100%, 670px);
+  margin: 0 auto 24px;
+  padding: clamp(22px, 4vw, 38px);
+  border: 1px solid var(--color-stone);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--color-cream) 78%, transparent);
+  color: var(--color-ink);
+}
+
+.lookupForm {
+  display: grid;
+  gap: 18px;
+  padding-top: 20px;
+}
+
+.lookupForm label {
+  display: grid;
+  gap: 10px;
+  color: var(--color-ink);
+  font-size: var(--font-size-small-mobile);
+  font-weight: 600;
+}
+
+.lookupForm input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--color-stone);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--color-cream) 50%, transparent);
+  color: var(--color-ink);
+  font: 400 var(--font-size-small-mobile) var(--font-poppins);
+}
+
+.lookupForm input:focus-visible {
+  outline: 2px solid var(--color-brown);
+  outline-offset: 2px;
+}
+
 .reservation,
 .editor {
   padding: clamp(22px, 4vw, 38px);
@@ -191,6 +231,10 @@
   line-height: 1.5;
 }
 
+.successMessage {
+  color: #355d3d;
+}
+
 @media (max-width: 600px) {
   .reservationHeader {
     flex-direction: column;
@@ -208,7 +252,9 @@
   .primaryLink,
   .secondaryLink,
   .saveButton,
-  .discardButton {
+  .discardButton,
+  .lookupForm .saveButton,
+  .lookupForm .discardButton {
     width: 100%;
   }
 }

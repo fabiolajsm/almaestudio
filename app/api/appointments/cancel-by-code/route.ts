@@ -1,7 +1,7 @@
 import { hasSameOrigin } from "@/lib/adminSession";
 import {
   deleteAppointmentReservation,
-  getAppointmentForCustomerCancellation,
+  getAppointmentForCustomer,
   SupabaseRequestError,
 } from "@/lib/supabaseAdmin";
 import {
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
 
   try {
     const appointment =
-      await getAppointmentForCustomerCancellation(reservationCode);
+      await getAppointmentForCustomer(reservationCode);
     if (
       !appointment ||
       appointment.customer_email?.trim().toLocaleLowerCase() !== email
