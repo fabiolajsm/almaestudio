@@ -149,6 +149,79 @@ export async function getAppointmentCalendarEventId(appointmentId: string) {
   return rows[0]?.calendar_event_id ?? null;
 }
 
+export async function getAppointmentForCustomerCancellation(
+  reservationCode: number,
+) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const query = new URLSearchParams({
+    select:
+      "id,reservation_code,appointment_date,start_time,duration_minutes,service_ids,total_price,customer_name,customer_email,calendar_event_id",
+    reservation_code: `eq.${reservationCode}`,
+    status: "in.(pending_review,confirmed)",
+    limit: "1",
+  });
+  const response = await fetch(
+    `${url}/rest/v1/appointment_reservations?${query.toString()}`,
+    {
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: "Bearer " + serviceRoleKey,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await getErrorDetails(response);
+    throw new SupabaseRequestError(error.message, response.status, error.code);
+  }
+
+  const rows = (await response.json()) as Array<{
+    id: string;
+    reservation_code: number;
+    appointment_date: string;
+    start_time: string;
+    duration_minutes: number;
+    service_ids: string[];
+    total_price: number;
+    customer_name: string | null;
+    customer_email: string | null;
+    calendar_event_id: string | null;
+  }>;
+  return rows[0] ?? null;
+}
+
+export async function deleteAppointmentReservation(appointmentId: string) {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const query = new URLSearchParams({
+    id: `eq.${appointmentId}`,
+    status: "in.(pending_review,confirmed)",
+    select: "id",
+  });
+  const response = await fetch(
+    `${url}/rest/v1/appointment_reservations?${query.toString()}`,
+    {
+      method: "DELETE",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: "Bearer " + serviceRoleKey,
+        Prefer: "return=representation",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    },
+  );
+
+  if (!response.ok) {
+    const error = await getErrorDetails(response);
+    throw new SupabaseRequestError(error.message, response.status, error.code);
+  }
+
+  const rows = (await response.json()) as Array<{ id: string }>;
+  return rows[0] ?? null;
+}
+
 export async function getAppointmentReservation(date: string, time: string) {
   const { url, serviceRoleKey } = getSupabaseConfig();
   const query = new URLSearchParams({
