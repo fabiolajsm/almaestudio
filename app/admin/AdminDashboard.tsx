@@ -254,7 +254,7 @@ export default function AdminDashboard() {
       const response = await fetch(
         action === "confirm"
           ? "/api/admin/appointments"
-          : "/api/appointments/cancel",
+          : "/api/admin/appointments/cancel",
         {
           method: action === "confirm" ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },

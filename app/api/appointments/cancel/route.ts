@@ -1,29 +1,26 @@
 import { hasSameOrigin } from "@/lib/adminSession";
 import {
-  getAppointmentCalendarEventId,
+  deleteAppointmentReservation,
+  getAppointmentForCustomer,
   SupabaseRequestError,
-  updateAdminAppointmentStatus,
 } from "@/lib/supabaseAdmin";
 import {
   deleteCalendarAppointment,
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
-import { requireAdmin } from "@/app/api/admin/appointments/authorization";
 
-const appointmentIdPattern =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+export const runtime = "nodejs";
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
 export async function POST(request: Request) {
   if (!hasSameOrigin(request)) {
     return Response.json({ error: "Solicitud no válida." }, { status: 403 });
   }
 
-  const authError = requireAdmin(request);
-  if (authError) {
-    return authError;
-  }
-
-  let body: { appointmentId?: unknown };
+  let body: unknown;
   try {
     const bodyText = await request.text();
     if (Buffer.byteLength(bodyText) > 1024) {
@@ -33,19 +30,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const parsedBody: unknown = JSON.parse(bodyText);
-    if (
-      !parsedBody ||
-      typeof parsedBody !== "object" ||
-      Array.isArray(parsedBody)
-    ) {
-      return Response.json(
-        { error: "El pedido no tiene un formato válido." },
-        { status: 400 },
-      );
-    }
-
-    body = parsedBody as { appointmentId?: unknown };
+    body = JSON.parse(bodyText);
   } catch {
     return Response.json(
       { error: "El pedido no tiene un formato válido." },
@@ -53,27 +38,52 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!isRecord(body)) {
+    return Response.json(
+      { error: "El pedido no tiene un formato válido." },
+      { status: 400 },
+    );
+  }
+
+  const reservationCode =
+    typeof body.reservationCode === "string" &&
+    /^\d{1,15}$/.test(body.reservationCode)
+      ? Number(body.reservationCode)
+      : Number.NaN;
+  const email =
+    typeof body.email === "string" ? body.email.trim().toLocaleLowerCase() : "";
+
   if (
-    typeof body.appointmentId !== "string" ||
-    !appointmentIdPattern.test(body.appointmentId)
+    body.action !== "cancel" ||
+    !Number.isSafeInteger(reservationCode) ||
+    reservationCode <= 0 ||
+    email.length > 254 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
   ) {
-    return Response.json({ error: "El turno no es válido." }, { status: 400 });
+    return Response.json(
+      { error: "Ingresá un código de reserva y un email válidos." },
+      { status: 400 },
+    );
   }
 
   try {
-    const calendarEventId = await getAppointmentCalendarEventId(
-      body.appointmentId,
-    );
-    if (calendarEventId) {
-      await deleteCalendarAppointment(calendarEventId);
+    const appointment = await getAppointmentForCustomer(reservationCode);
+    if (
+      !appointment ||
+      appointment.customer_email?.trim().toLocaleLowerCase() !== email
+    ) {
+      return Response.json(
+        { error: "No encontramos una reserva activa con esos datos." },
+        { status: 404 },
+      );
     }
 
-    const cancelled = await updateAdminAppointmentStatus(
-      body.appointmentId,
-      "cancelled",
-    );
+    if (appointment.calendar_event_id) {
+      await deleteCalendarAppointment(appointment.calendar_event_id);
+    }
 
-    if (!cancelled) {
+    const deleted = await deleteAppointmentReservation(appointment.id);
+    if (!deleted) {
       return Response.json(
         { error: "El turno ya no se puede cancelar o no existe." },
         { status: 409 },
@@ -85,15 +95,14 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    console.error("No se pudo cancelar el turno.", error);
+    console.error("No se pudo cancelar el turno con el código de reserva.", error);
     return Response.json(
       {
         error:
-          error instanceof GoogleCalendarIntegrationError &&
-          error.code === "not_configured"
-            ? "Google Calendar no está configurado para eliminar el evento."
+          error instanceof GoogleCalendarIntegrationError
+            ? "No se pudo eliminar el evento de Google Calendar. El turno sigue guardado."
             : error instanceof SupabaseRequestError
-              ? "No se pudo actualizar el turno. Intentá nuevamente."
+              ? "No se pudo eliminar la reserva. Intentá nuevamente."
               : "No se pudo cancelar el turno. Intentá nuevamente.",
       },
       { status: 503, headers: { "Cache-Control": "no-store" } },

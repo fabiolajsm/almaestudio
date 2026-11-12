@@ -6,6 +6,8 @@ type TurnSummaryProps = {
   services: Service[];
   selectedDate: string | null;
   selectedTime: string | null;
+  durationMinutes?: number;
+  totalPrice?: number;
 };
 
 const currencyFormatter = new Intl.NumberFormat("es-AR");
@@ -27,15 +29,19 @@ export default function TurnSummary({
   services,
   selectedDate,
   selectedTime,
+  durationMinutes,
+  totalPrice,
 }: TurnSummaryProps) {
-  const totalDuration = services.reduce(
+  const calculatedDuration = services.reduce(
     (total, service) => total + service.duration,
     0,
   );
-  const totalPrice = services.reduce(
+  const calculatedPrice = services.reduce(
     (total, service) => total + service.price,
     0,
   );
+  const summaryDuration = durationMinutes ?? calculatedDuration;
+  const summaryPrice = totalPrice ?? calculatedPrice;
   const summaryTitle =
     services.length === 1
       ? services[0].name
@@ -60,7 +66,7 @@ export default function TurnSummary({
           <h3 className={styles.title}>{summaryTitle}</h3>
           <p className={styles.serviceNames}>{serviceNames}</p>
           <p className={styles.totals}>
-            {totalDuration} min · $ {currencyFormatter.format(totalPrice)}
+            {summaryDuration} min · $ {currencyFormatter.format(summaryPrice)}
           </p>
         </div>
       )}
