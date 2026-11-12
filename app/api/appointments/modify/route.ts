@@ -1,4 +1,7 @@
-import { hasSameOrigin, validateCreateAppointmentInput } from "../create/validations";
+import {
+  hasSameOrigin,
+  validateAppointmentSelectionInput,
+} from "../create/validations";
 import {
   getAppointmentForCustomer,
   SupabaseRequestError,
@@ -136,15 +139,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const validation = validateCreateAppointmentInput({
+    const validation = validateAppointmentSelectionInput({
       date: body.date,
       time: body.time,
       serviceIds: body.serviceIds,
-      customer: {
-        name: appointment.customer_name,
-        email: appointment.customer_email,
-        phone: appointment.customer_phone,
-      },
     });
     if (!validation.success) {
       return Response.json({ error: validation.error }, { status: 400 });

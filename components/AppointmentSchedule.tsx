@@ -11,6 +11,10 @@ type AppointmentScheduleProps = {
   serviceDuration: number;
   selectedDate: string | null;
   selectedTime: string | null;
+  appointmentLookup?: {
+    reservationCode: number;
+    email: string;
+  };
   onSelectDate: (date: string) => void;
   onSelectTime: (time: string) => void;
   showHeading?: boolean;
@@ -195,6 +199,7 @@ export default function AppointmentSchedule({
   serviceDuration,
   selectedDate,
   selectedTime,
+  appointmentLookup,
   onSelectDate,
   onSelectTime,
   showHeading = true,
@@ -223,7 +228,11 @@ export default function AppointmentSchedule({
       ),
     ),
   );
-  const availabilityKey = `${today}:${availabilityEndDate}:${serviceDuration}`;
+  const availabilityKey = `${today}:${availabilityEndDate}:${serviceDuration}:${appointmentLookup?.reservationCode ?? ""}`;
+  const appointmentReservationCode = appointmentLookup?.reservationCode;
+  const appointmentEmail = appointmentLookup?.email;
+  const hasAppointmentLookup =
+    appointmentReservationCode !== undefined && appointmentEmail !== undefined;
   const [availabilityState, setAvailabilityState] =
     useState<AvailabilityState | null>(null);
   const currentAvailabilityState =
@@ -256,6 +265,18 @@ export default function AppointmentSchedule({
   const isLoading =
     serviceDuration > 0 &&
     currentAvailabilityState === null;
+  const selectedDateTimeSlots = selectedDate
+    ? (availability?.[selectedDate] ?? [])
+    : [];
+  const selectedDateAvailableSlots = selectedDateTimeSlots.filter(
+    (slot) => slot.status === "available",
+  );
+  const selectedTimeIsAvailable = selectedDateAvailableSlots.some(
+    (slot) => slot.time === selectedTime,
+  );
+  const selectedTimeExceedsBusinessHours =
+    Boolean(selectedTime) &&
+    !isAppointmentTimeWithinBusinessHours(selectedTime ?? "", serviceDuration);
 
   useEffect(() => {
     if (serviceDuration <= 0) {
@@ -265,8 +286,26 @@ export default function AppointmentSchedule({
     const controller = new AbortController();
 
     fetch(
-      `/api/appointments/availability?start=${today}&end=${availabilityEndDate}&duration=${serviceDuration}`,
-      { cache: "no-store", signal: controller.signal },
+      hasAppointmentLookup
+        ? "/api/appointments/availability"
+        : `/api/appointments/availability?start=${today}&end=${availabilityEndDate}&duration=${serviceDuration}`,
+      {
+        ...(hasAppointmentLookup
+          ? {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                startDate: today,
+                endDate: availabilityEndDate,
+                durationMinutes: serviceDuration,
+                reservationCode: appointmentReservationCode,
+                email: appointmentEmail,
+              }),
+            }
+          : {}),
+        cache: "no-store",
+        signal: controller.signal,
+      },
     )
       .then(async (response) => {
         const result = (await response.json()) as {
@@ -316,7 +355,15 @@ export default function AppointmentSchedule({
       });
 
     return () => controller.abort();
-  }, [availabilityEndDate, availabilityKey, serviceDuration, today]);
+  }, [
+    availabilityEndDate,
+    availabilityKey,
+    appointmentEmail,
+    appointmentReservationCode,
+    hasAppointmentLookup,
+    serviceDuration,
+    today,
+  ]);
 
   const formattedSelectedDate = selectedDate
     ? getAccessibleDate(getDateFromKey(selectedDate))
@@ -377,6 +424,11 @@ export default function AppointmentSchedule({
       <div className={styles.timeHeading}>
         <h3>Horarios</h3>
       </div>
+      {selectedTime && (
+        <p className={styles.selectedDate} aria-live="polite">
+          Horario seleccionado: {selectedTime}
+        </p>
+      )}
 
       {selectedDate ? (
         availabilityError ? (
@@ -395,28 +447,43 @@ export default function AppointmentSchedule({
         ) : (
           <>
             <div className={styles.timeSlots} aria-label="Horarios disponibles">
-              {(availability?.[selectedDate] ?? [])
-                .filter((slot) => slot.status === "available")
-                .map((slot) => (
-                  <button
-                    key={slot.time}
-                    type="button"
-                    className={`${styles.timeSlot} ${styles.availableTime} ${selectedTime === slot.time ? styles.selectedTime : ""}`}
-                    aria-pressed={selectedTime === slot.time}
-                    onClick={() => onSelectTime(slot.time)}
-                  >
-                    {slot.time}
-                  </button>
-                ))}
+              {!selectedTimeIsAvailable && selectedTime && (
+                <button
+                  type="button"
+                  className={`${styles.timeSlot} ${styles.selectedTime} ${styles.unavailableSelectedTime}`}
+                  aria-pressed="true"
+                  disabled
+                >
+                  {selectedTime} · horario actual
+                </button>
+              )}
+              {selectedDateAvailableSlots.map((slot) => (
+                <button
+                  key={slot.time}
+                  type="button"
+                  className={`${styles.timeSlot} ${styles.availableTime} ${selectedTime === slot.time ? styles.selectedTime : ""}`}
+                  aria-pressed={selectedTime === slot.time}
+                  onClick={() => onSelectTime(slot.time)}
+                >
+                  {slot.time}
+                </button>
+              ))}
               {!availability?.[selectedDate]?.some(
                 (slot) => slot.status === "available",
               ) &&
                 !shorterServiceAvailability?.[selectedDate] && (
-                <p className={styles.chooseDate}>
-                  No hay horarios disponibles para este día.
-                </p>
+                  <p className={styles.chooseDate}>
+                    No hay horarios disponibles para este día.
+                  </p>
                 )}
             </div>
+            {selectedTime && !selectedTimeIsAvailable && (
+              <p className={styles.chooseDate} role="status">
+                {selectedTimeExceedsBusinessHours
+                  ? "Los servicios elegidos son demasiado largos para este horario. Elegí uno más temprano o quitá algún servicio."
+                  : "El horario actual no está disponible para la duración de los servicios elegidos o se superpone con otro turno. Elegí otro horario o quitá algún servicio."}
+              </p>
+            )}
           </>
         )
       ) : (

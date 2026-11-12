@@ -172,6 +172,12 @@
   color: var(--color-ink);
 }
 
+.unavailableSelectedTime {
+  border-color: var(--color-brown);
+  background: color-mix(in srgb, var(--color-sand) 16%, transparent);
+  cursor: not-allowed;
+}
+
 .availableTime.selectedTime:hover:not(:disabled) {
   border-color: var(--color-ink);
 }

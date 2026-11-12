@@ -19,6 +19,14 @@ export type CreateAppointmentInput = {
   customer: AppointmentContactInput;
 };
 
+export type AppointmentSelectionInput = {
+  date: string;
+  time: string;
+  serviceIds: string[];
+  duration: number;
+  totalPrice: number;
+};
+
 export type AppointmentContactInput = {
   name: string;
   email: string;
@@ -56,14 +64,36 @@ export function validateCreateAppointmentInput(
     return { success: false, error: "El pedido no tiene un formato válido." };
   }
 
-  const date = typeof value.date === "string" ? value.date : "";
-  const time = typeof value.time === "string" ? value.time : "";
-  const { serviceIds } = value;
   const contactValidation = validateAppointmentContact(value);
 
   if (!contactValidation.success) {
     return contactValidation;
   }
+
+  const selectionValidation = validateAppointmentSelectionInput(value);
+  if (!selectionValidation.success) {
+    return selectionValidation;
+  }
+
+  return {
+    success: true,
+    data: {
+      ...selectionValidation.data,
+      customer: contactValidation.data,
+    },
+  };
+}
+
+export function validateAppointmentSelectionInput(
+  value: unknown,
+): ValidationResult<AppointmentSelectionInput> {
+  if (!isRecord(value)) {
+    return { success: false, error: "El pedido no tiene un formato válido." };
+  }
+
+  const date = typeof value.date === "string" ? value.date : "";
+  const time = typeof value.time === "string" ? value.time : "";
+  const { serviceIds } = value;
 
   if (!isValidAppointmentDate(date)) {
     return { success: false, error: "Elegí una fecha disponible." };
@@ -109,7 +139,6 @@ export function validateCreateAppointmentInput(
         (total, service) => total + service.price,
         0,
       ),
-      customer: contactValidation.data,
     },
   };
 }

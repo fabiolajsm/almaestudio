@@ -264,6 +264,11 @@ export default function ModifyAppointmentClient({
                 serviceDuration={selectedDuration}
                 selectedDate={selectedDate}
                 selectedTime={selectedTime}
+                appointmentLookup={
+                  appointment
+                    ? { reservationCode: appointment.reservationCode, email }
+                    : undefined
+                }
                 onSelectDate={(date) => {
                   setSelectedDate(date);
                   setSelectedTime("");

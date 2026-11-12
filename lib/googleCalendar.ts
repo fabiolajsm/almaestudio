@@ -606,6 +606,10 @@ export async function getAvailableTimesByDate(
   startDate: string,
   endDate: string,
   durationMinutes: number,
+  excludedAppointment?: {
+    appointmentId: string;
+    calendarEventId: string | null;
+  },
 ) {
   const start = getLocalDateTime(startDate, "00:00");
   const end = getLocalDateTime(getNextDateKey(endDate), "00:00");
@@ -614,6 +618,7 @@ export async function getAvailableTimesByDate(
     end,
     startDate,
     endDate,
+    excludedAppointment,
   );
 
   return getAvailabilityForIntervals(
