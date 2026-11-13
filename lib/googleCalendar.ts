@@ -1,11 +1,10 @@
 import { createHash, createSign } from "node:crypto";
 import {
-  appointmentClosingTime,
   appointmentBufferMinutes,
-  appointmentOpeningTime,
-  appointmentServices,
+  defaultAppointmentSettings,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
+  type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import { getActiveAppointmentReservations } from "@/lib/supabaseAdmin";
@@ -487,14 +486,15 @@ function getAppointmentTimeSlots(
   dateKey: string,
   durationMinutes: number,
   busyIntervals: BusyInterval[],
+  settings: AppointmentSettings,
 ): AppointmentTimeSlot[] {
   const openingTime = getLocalDateTime(
     dateKey,
-    `${String(Math.floor(appointmentOpeningTime / 60)).padStart(2, "0")}:${String(appointmentOpeningTime % 60).padStart(2, "0")}`,
+    `${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")}`,
   ).getTime();
   const closingTime = getLocalDateTime(
     dateKey,
-    `${String(Math.floor(appointmentClosingTime / 60)).padStart(2, "0")}:${String(appointmentClosingTime % 60).padStart(2, "0")}`,
+    `${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")}`,
   ).getTime();
   const now = Date.now();
   const firstFutureStart =
@@ -536,6 +536,7 @@ function getAvailabilityForIntervals(
   endDate: string,
   durationMinutes: number,
   busyIntervals: BusyInterval[],
+  settings: AppointmentSettings,
 ) {
   const timeSlots: AppointmentTimeSlotsByDate = {};
   const hasShorterServiceAvailability: Record<string, boolean> = {};
@@ -546,23 +547,25 @@ function getAvailabilityForIntervals(
     date.setUTCDate(date.getUTCDate() + 1)
   ) {
     const dateKey = date.toISOString().slice(0, 10);
-    const isWorkingDay = isAppointmentWorkingDay(dateKey);
+    const isWorkingDay = isAppointmentWorkingDay(dateKey, settings);
     timeSlots[dateKey] = isWorkingDay
       ? getAppointmentTimeSlots(
           dateKey,
           durationMinutes,
           busyIntervals,
+          settings,
         )
       : [];
     hasShorterServiceAvailability[dateKey] =
       isWorkingDay &&
-      appointmentServices.some(
+      settings.services.some(
         (service) =>
           service.duration < durationMinutes &&
           getAppointmentTimeSlots(
             dateKey,
             service.duration,
             busyIntervals,
+            settings,
           ).some((slot) => slot.status === "available"),
       );
   }
@@ -574,6 +577,7 @@ export async function getGoogleCalendarAvailabilityByDate(
   startDate: string,
   endDate: string,
   durationMinutes: number,
+  settings: AppointmentSettings = defaultAppointmentSettings,
 ) {
   const start = getLocalDateTime(startDate, "00:00");
   const end = getLocalDateTime(getNextDateKey(endDate), "00:00");
@@ -598,6 +602,7 @@ export async function getGoogleCalendarAvailabilityByDate(
       endDate,
       durationMinutes,
       busyIntervals,
+      settings,
     ),
   };
 }
@@ -610,6 +615,7 @@ export async function getAvailableTimesByDate(
     appointmentId: string;
     calendarEventId: string | null;
   },
+  settings: AppointmentSettings = defaultAppointmentSettings,
 ) {
   const start = getLocalDateTime(startDate, "00:00");
   const end = getLocalDateTime(getNextDateKey(endDate), "00:00");
@@ -626,6 +632,7 @@ export async function getAvailableTimesByDate(
     endDate,
     durationMinutes,
     busyIntervals,
+    settings,
   );
 }
 
@@ -633,6 +640,7 @@ export async function isAppointmentSlotAvailable(
   date: string,
   time: string,
   durationMinutes: number,
+  settings: AppointmentSettings = defaultAppointmentSettings,
   excludedAppointment?: {
     appointmentId: string;
     calendarEventId: string | null;
@@ -647,8 +655,8 @@ export async function isAppointmentSlotAvailable(
   }
 
   if (
-    !isAppointmentWorkingDay(date) ||
-    !isAppointmentTimeWithinBusinessHours(time, durationMinutes)
+    !isAppointmentWorkingDay(date, settings) ||
+    !isAppointmentTimeWithinBusinessHours(time, durationMinutes, settings)
   ) {
     return false;
   }
@@ -662,7 +670,10 @@ export async function isAppointmentSlotAvailable(
     excludedAppointment,
   );
 
-  return getAppointmentTimeSlots(date, durationMinutes, busyIntervals).some(
-    (slot) => slot.time === time && slot.status === "available",
-  );
+  return getAppointmentTimeSlots(
+    date,
+    durationMinutes,
+    busyIntervals,
+    settings,
+  ).some((slot) => slot.time === time && slot.status === "available");
 }

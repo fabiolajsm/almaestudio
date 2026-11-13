@@ -1,8 +1,10 @@
-export type AppointmentServiceCategory =
-  | "manicura"
-  | "pedicura"
-  | "cejas-pestanas"
-  | "promociones";
+export type AppointmentServiceCategory = string;
+
+export type AppointmentServiceCategoryDefinition = {
+  id: AppointmentServiceCategory;
+  name: string;
+  note?: string;
+};
 
 export type AppointmentService = {
   id: string;
@@ -13,11 +15,15 @@ export type AppointmentService = {
   price: number;
 };
 
-export const appointmentServiceCategories: {
-  id: AppointmentServiceCategory;
-  name: string;
-  note?: string;
-}[] = [
+export type AppointmentSettings = {
+  categories: AppointmentServiceCategoryDefinition[];
+  services: AppointmentService[];
+  openingTime: number;
+  closingTime: number;
+  workingDays: number[];
+};
+
+export const appointmentServiceCategories: AppointmentServiceCategoryDefinition[] = [
   { id: "manicura", name: "Manicura" },
   { id: "pedicura", name: "Pedicura" },
   { id: "cejas-pestanas", name: "Cejas y pestañas" },
@@ -189,16 +195,28 @@ export const appointmentOpeningTime = 8 * 60;
 export const appointmentClosingTime = 22 * 60;
 export const appointmentBufferMinutes = 15;
 
-export function isAppointmentWorkingDay(dateKey: string) {
+export const defaultAppointmentSettings: AppointmentSettings = {
+  categories: appointmentServiceCategories,
+  services: appointmentServices,
+  openingTime: appointmentOpeningTime,
+  closingTime: appointmentClosingTime,
+  workingDays: appointmentWorkingDays,
+};
+
+export function isAppointmentWorkingDay(
+  dateKey: string,
+  settings: AppointmentSettings = defaultAppointmentSettings,
+) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 
-  return appointmentWorkingDays.includes(weekday);
+  return settings.workingDays.includes(weekday);
 }
 
 export function isAppointmentTimeWithinBusinessHours(
   time: string,
   durationMinutes: number,
+  settings: AppointmentSettings = defaultAppointmentSettings,
 ) {
   if (
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
@@ -212,7 +230,7 @@ export function isAppointmentTimeWithinBusinessHours(
   const start = hour * 60 + minute;
 
   return (
-    start >= appointmentOpeningTime &&
-    start + durationMinutes <= appointmentClosingTime
+    start >= settings.openingTime &&
+    start + durationMinutes <= settings.closingTime
   );
 }

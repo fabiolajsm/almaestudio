@@ -3,28 +3,24 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const sessionCookieName = "alma_admin_session";
 const sessionDurationSeconds = 8 * 60 * 60;
 
-function getSessionSecret() {
-  const secret = process.env.ADMIN_SESSION_SECRET;
+function getAdminPassword() {
+  const password = process.env.ADMIN_PASSWORD;
 
-  if (!secret || Buffer.byteLength(secret) < 32) {
-    throw new Error("ADMIN_SESSION_SECRET debe tener al menos 32 bytes.");
+  if (!password) {
+    throw new Error("ADMIN_PASSWORD no está configurada.");
   }
 
-  return secret;
+  return password;
 }
 
 export function isAdminPasswordConfigured() {
   return Boolean(process.env.ADMIN_PASSWORD);
 }
 
-export function isAdminSessionSecretConfigured() {
-  return Buffer.byteLength(process.env.ADMIN_SESSION_SECRET ?? "") >= 32;
-}
-
 export function createAdminSessionCookie() {
   const expiresAt = Math.floor(Date.now() / 1000) + sessionDurationSeconds;
   const payload = String(expiresAt);
-  const signature = createHmac("sha256", getSessionSecret())
+  const signature = createHmac("sha256", getAdminPassword())
     .update(payload)
     .digest("base64url");
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
@@ -86,7 +82,7 @@ export function hasValidAdminSession(request: Request) {
   }
 
   try {
-    const expectedSignature = createHmac("sha256", getSessionSecret())
+    const expectedSignature = createHmac("sha256", getAdminPassword())
       .update(payload)
       .digest();
     const suppliedSignature = Buffer.from(signature, "base64url");

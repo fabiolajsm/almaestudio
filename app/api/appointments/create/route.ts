@@ -10,7 +10,7 @@ import {
   getCalendarEventId,
   isAppointmentSlotAvailable,
 } from "@/lib/googleCalendar";
-import { appointmentServices } from "@/app/Appoinments/appointmentCatalog";
+import { getAppointmentSettings } from "@/lib/appointmentSettings";
 import {
   hasSameOrigin,
   validateCreateAppointmentInput,
@@ -58,7 +58,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const validation = validateCreateAppointmentInput(body);
+  let settings: Awaited<ReturnType<typeof getAppointmentSettings>>;
+  try {
+    settings = await getAppointmentSettings();
+  } catch (error) {
+    console.error("No se pudo validar la configuración de turnos.", error);
+    return Response.json(
+      { error: "No se pudo consultar la configuración de turnos." },
+      { status: 503 },
+    );
+  }
+
+  const validation = validateCreateAppointmentInput(body, settings);
   if (!validation.success) {
     return Response.json({ error: validation.error }, { status: 400 });
   }
@@ -94,7 +105,7 @@ export async function POST(request: Request) {
     let reservationCode = existingAppointment?.reservation_code;
 
     if (!appointmentId) {
-      if (!(await isAppointmentSlotAvailable(date, time, duration))) {
+      if (!(await isAppointmentSlotAvailable(date, time, duration, settings))) {
         return Response.json(
           { error: "Ese horario ya no está disponible. Elegí otro, por favor." },
           { status: 409 },
@@ -173,7 +184,7 @@ export async function POST(request: Request) {
       throw new Error("El ID del evento guardado no coincide con el turno.");
     }
 
-    const serviceNames = appointmentServices
+    const serviceNames = settings.services
       .filter((service) => serviceIds.includes(service.id))
       .map((service) => service.name);
     await createCalendarAppointment({

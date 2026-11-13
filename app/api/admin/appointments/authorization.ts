@@ -1,11 +1,10 @@
 import {
   hasValidAdminSession,
   isAdminPasswordConfigured,
-  isAdminSessionSecretConfigured,
 } from "@/lib/adminSession";
 
 export function requireAdmin(request: Request) {
-  if (!isAdminPasswordConfigured() || !isAdminSessionSecretConfigured()) {
+  if (!isAdminPasswordConfigured()) {
     return Response.json(
       { error: "El acceso de administración todavía no está configurado." },
       { status: 503, headers: { "Cache-Control": "no-store" } },

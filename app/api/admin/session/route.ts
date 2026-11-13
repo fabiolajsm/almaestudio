@@ -4,7 +4,6 @@ import {
   createAdminSessionCookie,
   hasSameOrigin,
   isAdminPasswordConfigured,
-  isAdminSessionSecretConfigured,
   isValidAdminPassword,
 } from "@/lib/adminSession";
 
@@ -15,7 +14,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Solicitud no válida." }, { status: 403 });
   }
 
-  if (!isAdminPasswordConfigured() || !isAdminSessionSecretConfigured()) {
+  if (!isAdminPasswordConfigured()) {
     return Response.json(
       { error: "El acceso de administración todavía no está configurado." },
       { status: 503 },

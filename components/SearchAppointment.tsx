@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { FiArrowRight } from "react-icons/fi";
 import {
-  appointmentServices,
   legacyAppointmentServiceNames,
 } from "@/app/Appoinments/appointmentCatalog";
 import Loading from "./Loading";
@@ -28,6 +27,7 @@ export type AppointmentSearchCredentials = {
 };
 
 type SearchAppointmentProps = {
+  services: Service[];
   onAppointmentFound: (
     appointment: AppointmentSearchResult,
     credentials: AppointmentSearchCredentials,
@@ -64,10 +64,13 @@ function isAppointmentSearchResult(
   );
 }
 
-function getSummaryServices(appointment: AppointmentSearchResult): Service[] {
+function getSummaryServices(
+  appointment: AppointmentSearchResult,
+  services: Service[],
+): Service[] {
   return appointment.serviceIds.map(
     (id) =>
-      appointmentServices.find((service) => service.id === id) ?? {
+      services.find((service) => service.id === id) ?? {
         id,
         name: legacyAppointmentServiceNames[id] ?? "Servicio",
         category: "manicura",
@@ -78,6 +81,7 @@ function getSummaryServices(appointment: AppointmentSearchResult): Service[] {
 }
 
 export default function SearchAppointment({
+  services,
   onAppointmentFound,
   onSearchAnother,
 }: SearchAppointmentProps) {
@@ -146,7 +150,7 @@ export default function SearchAppointment({
             <h2>Encontramos tu turno.</h2>
           </div>
           <TurnSummary
-            services={getSummaryServices(appointment)}
+            services={getSummaryServices(appointment, services)}
             selectedDate={appointment.appointmentDate}
             selectedTime={appointment.startTime.slice(0, 5)}
             durationMinutes={appointment.durationMinutes}

@@ -4,6 +4,7 @@ import {
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
 import { getAppointmentForCustomer } from "@/lib/supabaseAdmin";
+import { getAppointmentSettings } from "@/lib/appointmentSettings";
 import { hasSameOrigin } from "../create/validations";
 
 export const runtime = "nodejs";
@@ -62,10 +63,13 @@ export async function GET(request: Request) {
   }
 
   try {
+    const settings = await getAppointmentSettings();
     const availability = await getAvailableTimesByDate(
       range.startDate,
       range.endDate,
       range.durationMinutes,
+      undefined,
+      settings,
     );
 
     return Response.json(
@@ -148,6 +152,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const settings = await getAppointmentSettings();
     const appointment = await getAppointmentForCustomer(reservationCode);
     if (
       !appointment ||
@@ -167,6 +172,7 @@ export async function POST(request: Request) {
         appointmentId: appointment.id,
         calendarEventId: appointment.calendar_event_id,
       },
+      settings,
     );
 
     return Response.json(availability, {

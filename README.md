@@ -24,18 +24,20 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 El flujo de creación guarda las reservas confirmadas en Supabase y crea el evento en Google Calendar. A cada reserva se le asigna un código numérico único y permanente para identificarla. No requieren pago.
 
-1. En un proyecto Supabase nuevo, ejecutá `supabase/createAppoinment.sql`. Crea la tabla de reservas y la función `createAppoinment`.
+1. En un proyecto Supabase nuevo, ejecutá `supabase/createAppoinment.sql` y `supabase/appointmentSettings.sql`. El segundo script crea `appointment_services` (una fila por servicio), `appointment_service_categories` (los nombres de las categorías) y `appointment_business_hours` (apertura, cierre y días laborables), y carga los valores iniciales.
 2. Copiá `.env.example` a `.env.local` y completá la URL y la clave `service_role` del proyecto. Esa clave es solo de servidor: no la uses en variables `NEXT_PUBLIC_*`.
-3. Configurá `ADMIN_PASSWORD` con una contraseña fuerte y `ADMIN_SESSION_SECRET` con al menos 32 bytes aleatorios. Podés generar el secreto con `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. Son variables solo de servidor: no las subas al repositorio ni uses variables `NEXT_PUBLIC_*`.
+3. Configurá `ADMIN_PASSWORD` con una contraseña larga que solo use la administradora. Es la única clave necesaria para entrar al panel y firmar su sesión; mantenela solo en el servidor, sin usar variables `NEXT_PUBLIC_*` ni subirla al repositorio.
 4. Reiniciá la aplicación después de cambiar las variables.
+
+Si las reservas ya estaban configuradas, ejecutá `supabase/appointmentSettings.sql` en Supabase para habilitar el guardado de cambios del panel.
 
 Si ya ejecutaste una versión anterior del script, volvé a ejecutarlo para agregar los códigos de reserva y quitar de Supabase los campos y funciones que usaba la integración de pagos. Se conservan las reservas existentes, se asignan códigos a las que no tenían y las que estaban pendientes quedan confirmadas.
 
-El panel privado está en `/admin`. Desde allí se confirman las solicitudes y se cancelan los turnos. La sesión de administración dura 8 horas y usa una cookie `HttpOnly`.
+El panel privado está en `/admin`. Ingresá con la contraseña definida en `ADMIN_PASSWORD` para crear, editar o eliminar servicios y renombrar categorías, además de cambiar los días y horarios de atención. La sesión dura 8 horas y usa una cookie `HttpOnly`. Los cambios se guardan en las tablas `appointment_services`, `appointment_service_categories` y `appointment_business_hours`, y se aplican al selector y a las validaciones de las reservas.
 
 ## Conectar Google Calendar
 
-La disponibilidad consulta los bloques libre/ocupado de `almaestudio.arg@gmail.com`; no lee títulos ni detalles de eventos. Al completar una solicitud se crea un evento en esa agenda, y al cancelar desde el panel también se elimina el evento correspondiente. Los horarios ocupados y las reservas guardadas en la aplicación se ocultan en el selector y se vuelven a verificar antes de crear un turno. Se conserva un margen de 15 minutos entre eventos y turnos.
+La disponibilidad consulta los bloques libre/ocupado de `almaestudio.arg@gmail.com`; no lee títulos ni detalles de eventos. Al completar una solicitud se crea un evento en esa agenda, y al cancelar un turno también se elimina el evento correspondiente. Los horarios ocupados y las reservas guardadas en la aplicación se ocultan en el selector y se vuelven a verificar antes de crear un turno. Se conserva un margen de 15 minutos entre eventos y turnos.
 
 1. En Google Cloud, habilitá la Google Calendar API y creá una cuenta de servicio con una clave JSON.
 2. Desde la configuración de Google Calendar de `almaestudio.arg@gmail.com`, compartí la agenda con el correo de la cuenta de servicio y asignale permiso para **hacer cambios en los eventos**.

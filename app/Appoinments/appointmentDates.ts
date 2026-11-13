@@ -12,11 +12,14 @@ export function getArgentinaDateKey(date: Date) {
   return `${values.year}-${values.month}-${values.day}`;
 }
 
-export function getNextAppointmentDate(today: string) {
+export function getNextAppointmentDate(
+  today: string,
+  workingDays: number[] = [1, 2, 3, 4, 5, 6],
+) {
   const [year, month, day] = today.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day + 1));
 
-  if (date.getUTCDay() === 0) {
+  while (!workingDays.includes(date.getUTCDay())) {
     date.setUTCDate(date.getUTCDate() + 1);
   }
 

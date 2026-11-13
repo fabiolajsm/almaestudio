@@ -3,6 +3,7 @@ import {
   getGoogleCalendarAvailabilityByDate,
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
+import { getAppointmentSettings } from "@/lib/appointmentSettings";
 
 export const runtime = "nodejs";
 
@@ -50,6 +51,7 @@ export async function GET(request: Request) {
       startDate,
       endDate,
       durationMinutes,
+      await getAppointmentSettings(),
     );
 
     return Response.json(

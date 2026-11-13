@@ -10,8 +10,9 @@ import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
-import Services, { services } from "@/components/Services";
+import Services from "@/components/Services";
 import TurnSummary from "@/components/TurnSummary";
+import useAppointmentSettings from "@/components/useAppointmentSettings";
 
 import styles from "./page.module.css";
 
@@ -22,6 +23,8 @@ type ApiError = {
 };
 
 export default function CreateAppointmentPage() {
+  const { settings, isLoading: isLoadingSettings, error: settingsError } =
+    useAppointmentSettings();
   const [today, setToday] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -36,7 +39,7 @@ export default function CreateAppointmentPage() {
     Partial<Record<keyof typeof contact, boolean>>
   >({});
   const { errors: contactErrors } = validateAppointmentContactFields(contact);
-  const selectedServices = services.filter((service) =>
+  const selectedServices = (settings?.services ?? []).filter((service) =>
     selectedServiceIds.includes(service.id),
   );
   const selectedServicesDuration = selectedServices.reduce(
@@ -109,21 +112,31 @@ export default function CreateAppointmentPage() {
             <p className={styles.stepKicker}>{stepContent.kicker}</p>
             <h2 className={styles.stepTitle}>{stepContent.title}</h2>
             <p className={styles.stepDescription}>{stepContent.description}</p>
+            {settingsError && (
+              <p className={styles.formMessage} role="alert">
+                {settingsError}
+              </p>
+            )}
 
             {currentStep === 0 && (
-              <>
+              settings ? (
                 <Services
+                  categories={settings.categories}
+                  services={settings.services}
                   selectedServiceIds={selectedServiceIds}
                   onToggleService={toggleService}
                 />
-              </>
+              ) : isLoadingSettings ? (
+                <Loading label="Cargando servicios..." />
+              ) : null
             )}
 
             {currentStep === 1 &&
-              (today ? (
+              (today && settings ? (
                 <AppointmentSchedule
                   today={today}
                   serviceDuration={selectedServicesDuration}
+                  settings={settings}
                   selectedDate={selectedDate}
                   selectedTime={selectedTime}
                   onSelectDate={(date) => {
@@ -315,6 +328,7 @@ export default function CreateAppointmentPage() {
                   className={styles.primaryButton}
                   disabled={
                     isBusy ||
+                    !settings ||
                     (currentStep === 0 && selectedServiceIds.length === 0) ||
                     (currentStep === 1 && (!selectedDate || !selectedTime))
                   }
@@ -380,14 +394,14 @@ export default function CreateAppointmentPage() {
   }
 
   function continueToNextStep() {
-    if (currentStep === 0 && selectedServiceIds.length > 0) {
+    if (currentStep === 0 && settings && selectedServiceIds.length > 0) {
       setToday(getArgentinaDateKey(new Date()));
       setFormMessage("");
       setCurrentStep(1);
       return;
     }
 
-    if (currentStep !== 1 || !selectedDate || !selectedTime) {
+    if (!settings || currentStep !== 1 || !selectedDate || !selectedTime) {
       return;
     }
 

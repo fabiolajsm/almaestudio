@@ -12,7 +12,8 @@ import {
   isAppointmentSlotAvailable,
   updateCalendarAppointment,
 } from "@/lib/googleCalendar";
-import { appointmentServices } from "@/app/Appoinments/appointmentCatalog";
+import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import { getAppointmentSettings } from "@/lib/appointmentSettings";
 
 export const runtime = "nodejs";
 
@@ -20,9 +21,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function getServiceNames(serviceIds: string[]) {
+function getServiceNames(serviceIds: string[], settings: AppointmentSettings) {
   return serviceIds.map(
-    (id) => appointmentServices.find((service) => service.id === id)?.name ?? id,
+    (id) => settings.services.find((service) => service.id === id)?.name ?? id,
   );
 }
 
@@ -32,6 +33,7 @@ function getCalendarUpdate(
   time: string,
   durationMinutes: number,
   serviceIds: string[],
+  settings: AppointmentSettings,
 ) {
   if (!appointment.customer_name) {
     throw new Error("La reserva no tiene un nombre de cliente válido.");
@@ -44,7 +46,7 @@ function getCalendarUpdate(
     time,
     durationMinutes,
     customerName: appointment.customer_name,
-    serviceNames: getServiceNames(serviceIds),
+    serviceNames: getServiceNames(serviceIds, settings),
   };
 }
 
@@ -139,11 +141,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const settings = await getAppointmentSettings();
     const validation = validateAppointmentSelectionInput({
       date: body.date,
       time: body.time,
       serviceIds: body.serviceIds,
-    });
+    }, settings);
     if (!validation.success) {
       return Response.json({ error: validation.error }, { status: 400 });
     }
@@ -154,6 +157,7 @@ export async function POST(request: Request) {
         updatedAppointment.date,
         updatedAppointment.time,
         updatedAppointment.duration,
+        settings,
         {
           appointmentId: appointment.id,
           calendarEventId: appointment.calendar_event_id,
@@ -172,6 +176,7 @@ export async function POST(request: Request) {
       appointment.start_time.slice(0, 5),
       appointment.duration_minutes,
       appointment.service_ids,
+      settings,
     );
     const newCalendarUpdate = getCalendarUpdate(
       appointment,
@@ -179,6 +184,7 @@ export async function POST(request: Request) {
       updatedAppointment.time,
       updatedAppointment.duration,
       updatedAppointment.serviceIds,
+      settings,
     );
 
     await updateCalendarAppointment(newCalendarUpdate);

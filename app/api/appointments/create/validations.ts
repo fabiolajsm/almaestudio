@@ -1,7 +1,8 @@
 import {
-  appointmentServices,
+  defaultAppointmentSettings,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
+  type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
@@ -43,7 +44,10 @@ export function hasSameOrigin(request: Request) {
   return origin !== null && origin === new URL(request.url).origin;
 }
 
-function isValidAppointmentDate(date: string) {
+function isValidAppointmentDate(
+  date: string,
+  settings: AppointmentSettings,
+) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return false;
   }
@@ -53,12 +57,13 @@ function isValidAppointmentDate(date: string) {
     !Number.isNaN(parsed.getTime()) &&
     parsed.toISOString().slice(0, 10) === date &&
     date >= getArgentinaDateKey(new Date()) &&
-    isAppointmentWorkingDay(date)
+    isAppointmentWorkingDay(date, settings)
   );
 }
 
 export function validateCreateAppointmentInput(
   value: unknown,
+  settings: AppointmentSettings = defaultAppointmentSettings,
 ): ValidationResult<CreateAppointmentInput> {
   if (!isRecord(value)) {
     return { success: false, error: "El pedido no tiene un formato válido." };
@@ -70,7 +75,7 @@ export function validateCreateAppointmentInput(
     return contactValidation;
   }
 
-  const selectionValidation = validateAppointmentSelectionInput(value);
+  const selectionValidation = validateAppointmentSelectionInput(value, settings);
   if (!selectionValidation.success) {
     return selectionValidation;
   }
@@ -86,6 +91,7 @@ export function validateCreateAppointmentInput(
 
 export function validateAppointmentSelectionInput(
   value: unknown,
+  settings: AppointmentSettings = defaultAppointmentSettings,
 ): ValidationResult<AppointmentSelectionInput> {
   if (!isRecord(value)) {
     return { success: false, error: "El pedido no tiene un formato válido." };
@@ -95,7 +101,7 @@ export function validateAppointmentSelectionInput(
   const time = typeof value.time === "string" ? value.time : "";
   const { serviceIds } = value;
 
-  if (!isValidAppointmentDate(date)) {
+  if (!isValidAppointmentDate(date, settings)) {
     return { success: false, error: "Elegí una fecha disponible." };
   }
 
@@ -109,7 +115,7 @@ export function validateAppointmentSelectionInput(
   }
 
   const selectedServiceIds = serviceIds;
-  const selectedServices = appointmentServices.filter((service) =>
+  const selectedServices = settings.services.filter((service) =>
     selectedServiceIds.includes(service.id),
   );
 
@@ -121,7 +127,7 @@ export function validateAppointmentSelectionInput(
     (total, service) => total + service.duration,
     0,
   );
-  if (!isAppointmentTimeWithinBusinessHours(time, duration)) {
+  if (!isAppointmentTimeWithinBusinessHours(time, duration, settings)) {
     return {
       success: false,
       error: "El horario no está dentro del horario de atención.",

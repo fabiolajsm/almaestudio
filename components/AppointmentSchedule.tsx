@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { isAppointmentTimeWithinBusinessHours } from "@/app/Appoinments/appointmentCatalog";
+import {
+  isAppointmentTimeWithinBusinessHours,
+  type AppointmentSettings,
+} from "@/app/Appoinments/appointmentCatalog";
 import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
 import Loading from "./Loading";
 import styles from "./AppointmentSchedule.module.css";
@@ -9,6 +12,7 @@ import styles from "./AppointmentSchedule.module.css";
 type AppointmentScheduleProps = {
   today: string;
   serviceDuration: number;
+  settings: AppointmentSettings;
   selectedDate: string | null;
   selectedTime: string | null;
   appointmentLookup?: {
@@ -57,6 +61,7 @@ type AvailabilityState =
 function isAvailabilityMap(
   value: unknown,
   durationMinutes: number,
+  settings: AppointmentSettings,
 ): value is Record<string, AppointmentTimeSlot[]> {
   return (
     value !== null &&
@@ -74,7 +79,11 @@ function isAvailabilityMap(
           typeof slot !== "object" ||
           typeof slot.time !== "string" ||
           !["available", "busy", "past"].includes(slot.status) ||
-          !isAppointmentTimeWithinBusinessHours(slot.time, durationMinutes) ||
+          !isAppointmentTimeWithinBusinessHours(
+            slot.time,
+            durationMinutes,
+            settings,
+          ) ||
           seenTimes.has(slot.time)
         ) {
           return false;
@@ -128,6 +137,7 @@ function CalendarMonth({
   today,
   timeSlots,
   hasShorterServiceAvailability,
+  workingDays,
   isLoading,
   hasError,
   onSelectDate,
@@ -137,6 +147,7 @@ function CalendarMonth({
   today: string;
   timeSlots: Record<string, AppointmentTimeSlot[]> | null;
   hasShorterServiceAvailability: Record<string, boolean> | null;
+  workingDays: number[];
   isLoading: boolean;
   hasError: boolean;
   onSelectDate: (date: string) => void;
@@ -168,7 +179,7 @@ function CalendarMonth({
           const dateKey = getDateKey(date);
           const isUnavailable =
             dateKey < today ||
-            date.getUTCDay() === 0 ||
+            !workingDays.includes(date.getUTCDay()) ||
             isLoading ||
             hasError ||
             (!timeSlots?.[dateKey]?.some((slot) => slot.status === "available") &&
@@ -197,6 +208,7 @@ function CalendarMonth({
 export default function AppointmentSchedule({
   today,
   serviceDuration,
+  settings,
   selectedDate,
   selectedTime,
   appointmentLookup,
@@ -276,7 +288,11 @@ export default function AppointmentSchedule({
   );
   const selectedTimeExceedsBusinessHours =
     Boolean(selectedTime) &&
-    !isAppointmentTimeWithinBusinessHours(selectedTime ?? "", serviceDuration);
+    !isAppointmentTimeWithinBusinessHours(
+      selectedTime ?? "",
+      serviceDuration,
+      settings,
+    );
 
   useEffect(() => {
     if (serviceDuration <= 0) {
@@ -323,7 +339,7 @@ export default function AppointmentSchedule({
         }
 
         if (
-          !isAvailabilityMap(result.timeSlots, serviceDuration) ||
+          !isAvailabilityMap(result.timeSlots, serviceDuration, settings) ||
           !isShorterServiceAvailabilityMap(
             result.hasShorterServiceAvailability,
           )
@@ -361,6 +377,7 @@ export default function AppointmentSchedule({
     appointmentEmail,
     appointmentReservationCode,
     hasAppointmentLookup,
+    settings,
     serviceDuration,
     today,
   ]);
@@ -395,6 +412,7 @@ export default function AppointmentSchedule({
             month={month}
             selectedDate={selectedDate}
             today={today}
+            workingDays={settings.workingDays}
             timeSlots={availability}
             hasShorterServiceAvailability={shorterServiceAvailability}
             isLoading={isLoading}
@@ -408,9 +426,20 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        Atención de lunes a sábado, de 8 a 22hs. Los inicios se muestran cada
-        15 min según la duración del servicio. Solo se muestran horarios
-        disponibles.
+        Atención:{" "}
+        {settings.workingDays
+          .map(
+            (day) =>
+              weekdayNames[day].charAt(0).toUpperCase() +
+              weekdayNames[day].slice(1),
+          )
+          .join(", ")}
+        , de{" "}
+        {`${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")}`}
+        {" a "}
+        {`${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")}`}
+        hs. Los inicios se muestran cada 15 min según la duración del servicio.
+        Solo se muestran horarios disponibles.
       </p>
 
       {shouldShowShorterServiceNotice && (

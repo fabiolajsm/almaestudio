@@ -3,23 +3,25 @@
 import { useState } from "react";
 import { FiCheck, FiChevronDown, FiPlus } from "react-icons/fi";
 import {
-  appointmentServiceCategories,
-  appointmentServices as services,
   type AppointmentService,
+  type AppointmentServiceCategoryDefinition,
 } from "@/app/Appoinments/appointmentCatalog";
 import styles from "./Services.module.css";
 
 export type Service = AppointmentService;
-export { services };
 
 const currencyFormatter = new Intl.NumberFormat("es-AR");
 
 type ServicesProps = {
+  categories: AppointmentServiceCategoryDefinition[];
+  services: AppointmentService[];
   selectedServiceIds: string[];
   onToggleService: (serviceId: string) => void;
 };
 
 export default function Services({
+  categories,
+  services,
   selectedServiceIds,
   onToggleService,
 }: ServicesProps) {
@@ -40,7 +42,7 @@ export default function Services({
         Servicios disponibles
       </h3>
       <div className={styles.categories}>
-        {appointmentServiceCategories.map((category) => {
+        {categories.map((category) => {
           const categoryServices = services.filter(
             (service) => service.category === category.id,
           );

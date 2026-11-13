@@ -11,6 +11,7 @@ import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
 } from "@/components/SearchAppointment";
+import useAppointmentSettings from "@/components/useAppointmentSettings";
 import styles from "./page.module.css";
 
 type CancelApiResult = {
@@ -19,6 +20,7 @@ type CancelApiResult = {
 };
 
 export default function DeleteAppointmentPage() {
+  const { settings, error: settingsError } = useAppointmentSettings();
   const [reservationCode, setReservationCode] = useState("");
   const [email, setEmail] = useState("");
   const [appointment, setAppointment] =
@@ -105,9 +107,15 @@ export default function DeleteAppointmentPage() {
       ) : (
         <>
           <SearchAppointment
+            services={settings?.services ?? []}
             onAppointmentFound={handleAppointmentFound}
             onSearchAnother={searchAnotherAppointment}
           />
+          {settingsError && (
+            <p className={styles.error} role="alert">
+              {settingsError}
+            </p>
+          )}
           {appointment && (
             <section
               className={styles.confirmation}

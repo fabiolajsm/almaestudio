@@ -11,8 +11,9 @@ import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
 } from "@/components/SearchAppointment";
-import Services, { services } from "@/components/Services";
+import Services from "@/components/Services";
 import TurnSummary from "@/components/TurnSummary";
+import useAppointmentSettings from "@/components/useAppointmentSettings";
 import {
   getArgentinaDateKey,
   getNextAppointmentDate,
@@ -37,12 +38,16 @@ type ModifyApiResult = {
 };
 
 export default function ModifyAppointmentPage() {
+  const { settings, isLoading: isLoadingSettings, error: settingsError } =
+    useAppointmentSettings();
   const today = useSyncExternalStore(
     subscribeToDateChanges,
     getCurrentArgentinaDate,
     getServerDate,
   );
-  const initialDate = today ? getNextAppointmentDate(today) : "";
+  const initialDate = today
+    ? getNextAppointmentDate(today, settings?.workingDays)
+    : "";
   const [reservationCode, setReservationCode] = useState("");
   const [email, setEmail] = useState("");
   const [appointment, setAppointment] =
@@ -55,7 +60,7 @@ export default function ModifyAppointmentPage() {
   const [isSaved, setIsSaved] = useState(false);
   const currentSelectedDate = selectedDate || initialDate;
 
-  const selectedServices = services.filter((service) =>
+  const selectedServices = (settings?.services ?? []).filter((service) =>
     selectedServiceIds.includes(service.id),
   );
   const selectedDuration = selectedServices.reduce(
@@ -167,9 +172,15 @@ export default function ModifyAppointmentPage() {
       />
 
       <SearchAppointment
+        services={settings?.services ?? []}
         onAppointmentFound={handleAppointmentFound}
         onSearchAnother={searchAnotherAppointment}
       />
+      {settingsError && (
+        <p className={styles.message} role="alert">
+          {settingsError}
+        </p>
+      )}
 
       {appointment && (
         <div className={styles.modifyLayout}>
@@ -202,26 +213,35 @@ export default function ModifyAppointmentPage() {
 
             <div className={styles.editorSection}>
               <h3>Servicios</h3>
-              <Services
-                selectedServiceIds={selectedServiceIds}
-                onToggleService={(serviceId) => {
-                  setSelectedServiceIds((currentIds) =>
-                    currentIds.includes(serviceId)
-                      ? currentIds.filter((id) => id !== serviceId)
-                      : [...currentIds, serviceId],
-                  );
-                  setMessage("");
-                  setIsSaved(false);
-                }}
-              />
+              {settings ? (
+                <Services
+                  categories={settings.categories}
+                  services={settings.services}
+                  selectedServiceIds={selectedServiceIds}
+                  onToggleService={(serviceId) => {
+                    setSelectedServiceIds((currentIds) =>
+                      currentIds.includes(serviceId)
+                        ? currentIds.filter((id) => id !== serviceId)
+                        : [...currentIds, serviceId],
+                    );
+                    setMessage("");
+                    setIsSaved(false);
+                  }}
+                />
+              ) : isLoadingSettings ? (
+                <Loading label="Cargando servicios..." />
+              ) : (
+                <p role="alert">{settingsError}</p>
+              )}
             </div>
 
             <div className={styles.editorSection}>
               <h3>Fecha y horario</h3>
-              {today ? (
+              {today && settings ? (
                 <AppointmentSchedule
                   today={today}
                   serviceDuration={selectedDuration}
+                  settings={settings}
                   selectedDate={currentSelectedDate}
                   selectedTime={selectedTime}
                   appointmentLookup={{
@@ -241,8 +261,10 @@ export default function ModifyAppointmentPage() {
                   }}
                   showHeading={false}
                 />
-              ) : (
+              ) : isLoadingSettings ? (
                 <Loading label="Preparando la agenda..." />
+              ) : (
+                <p role="alert">{settingsError}</p>
               )}
             </div>
 
@@ -261,6 +283,8 @@ export default function ModifyAppointmentPage() {
                 className={styles.saveButton}
                 disabled={
                   isBusy ||
+                      !settings ||
+                      isLoadingSettings ||
                   selectedServiceIds.length === 0 ||
                   !selectedDate ||
                   !selectedTime

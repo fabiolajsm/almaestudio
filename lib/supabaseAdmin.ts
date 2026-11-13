@@ -1,4 +1,5 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
+import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
 
 export type AdminAppointmentReservation = {
   id: string;
@@ -60,6 +61,155 @@ async function getErrorDetails(response: Response) {
   }
 
   return { message: response.statusText };
+}
+
+function parseDatabaseTime(value: string) {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d(?:\.\d+)?)?$/.exec(
+    value,
+  );
+  if (!match) {
+    throw new Error("Supabase devolvió un horario de atención inválido.");
+  }
+
+  return Number(match[1]) * 60 + Number(match[2]);
+}
+
+export async function getAppointmentSettingsRecord(): Promise<unknown | null> {
+  const { url, serviceRoleKey } = getSupabaseConfig();
+  const headers = {
+    apikey: serviceRoleKey,
+    Authorization: "Bearer " + serviceRoleKey,
+  };
+  const hoursQuery = new URLSearchParams({
+    select: "opening_time,closing_time,working_days",
+    id: "eq.default",
+    limit: "1",
+  });
+  const servicesQuery = new URLSearchParams({
+    select: "id,name,description,category,duration_minutes,price",
+    order: "sort_order.asc",
+  });
+  const categoriesQuery = new URLSearchParams({
+    select: "id,name,note",
+    order: "sort_order.asc",
+  });
+  const [hoursResponse, servicesResponse, categoriesResponse] =
+    await Promise.all([
+    fetch(
+      `${url}/rest/v1/appointment_business_hours?${hoursQuery.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      },
+    ),
+    fetch(`${url}/rest/v1/appointment_services?${servicesQuery.toString()}`, {
+      headers,
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    }),
+    fetch(
+      `${url}/rest/v1/appointment_service_categories?${categoriesQuery.toString()}`,
+      {
+        headers,
+        cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
+      },
+    ),
+  ]);
+
+  if (!hoursResponse.ok) {
+    const error = await getErrorDetails(hoursResponse);
+    throw new SupabaseRequestError(
+      error.message,
+      hoursResponse.status,
+      error.code,
+    );
+  }
+  if (!servicesResponse.ok) {
+    const error = await getErrorDetails(servicesResponse);
+    throw new SupabaseRequestError(
+      error.message,
+      servicesResponse.status,
+      error.code,
+    );
+  }
+  if (!categoriesResponse.ok) {
+    const error = await getErrorDetails(categoriesResponse);
+    throw new SupabaseRequestError(
+      error.message,
+      categoriesResponse.status,
+      error.code,
+    );
+  }
+
+  const hours = (
+    (await hoursResponse.json()) as Array<{
+      opening_time: string;
+      closing_time: string;
+      working_days: number[];
+    }>
+  )[0];
+  const services = (await servicesResponse.json()) as Array<{
+    id: string;
+    name: string;
+    description: string | null;
+    category: string;
+    duration_minutes: number;
+    price: number;
+  }>;
+  const categories = (await categoriesResponse.json()) as Array<{
+    id: string;
+    name: string;
+    note: string | null;
+  }>;
+
+  if (!hours && services.length === 0 && categories.length === 0) {
+    return null;
+  }
+  if (!hours || services.length === 0 || categories.length === 0) {
+    throw new Error("Supabase devolvió una configuración de turnos incompleta.");
+  }
+
+  return {
+    categories: categories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      ...(category.note === null ? {} : { note: category.note }),
+    })),
+    services: services.map((service) => ({
+      id: service.id,
+      name: service.name,
+      ...(service.description === null
+        ? {}
+        : { description: service.description }),
+      category: service.category,
+      duration: service.duration_minutes,
+      price: service.price,
+    })),
+    openingTime: parseDatabaseTime(hours.opening_time),
+    closingTime: parseDatabaseTime(hours.closing_time),
+    workingDays: hours.working_days,
+  };
+}
+
+function formatDatabaseTime(minutes: number) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}:00`;
+}
+
+export async function saveAppointmentSettingsRecord(
+  settings: AppointmentSettings,
+) {
+  const result = await callSupabaseRpc<boolean>("save_appointment_settings", {
+    p_categories: settings.categories,
+    p_services: settings.services,
+    p_opening_time: formatDatabaseTime(settings.openingTime),
+    p_closing_time: formatDatabaseTime(settings.closingTime),
+    p_working_days: settings.workingDays,
+  });
+  if (result !== true) {
+    throw new Error("Supabase no confirmó los cambios de configuración.");
+  }
 }
 
 export async function callSupabaseRpc<T>(

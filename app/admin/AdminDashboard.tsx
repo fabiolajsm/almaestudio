@@ -1,120 +1,75 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { SubmitEvent } from "react";
-import {
-  FiCheck,
-  FiLogOut,
-  FiRefreshCw,
-  FiX,
-} from "react-icons/fi";
+import { FiLogOut, FiPlus, FiSave, FiTrash2 } from "react-icons/fi";
+import type {
+  AppointmentSettings,
+  AppointmentService,
+} from "@/app/Appoinments/appointmentCatalog";
 import Loading from "@/components/Loading";
-import {
-  appointmentServices,
-  legacyAppointmentServiceNames,
-} from "../Appoinments/appointmentCatalog";
+import { isAppointmentSettings } from "@/components/useAppointmentSettings";
 import styles from "./page.module.css";
 
-type AdminAppointment = {
-  id: string;
-  reservation_code: number;
-  appointment_date: string;
-  start_time: string;
-  duration_minutes: number;
-  service_ids: string[];
-  total_price: number;
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-  status: "pending_review" | "confirmed";
-  created_at: string;
-};
+const weekdays = [
+  { value: 1, label: "Lunes" },
+  { value: 2, label: "Martes" },
+  { value: 3, label: "Miércoles" },
+  { value: 4, label: "Jueves" },
+  { value: 5, label: "Viernes" },
+  { value: 6, label: "Sábado" },
+  { value: 0, label: "Domingo" },
+];
 
-type AppointmentFilter = "pending_review" | "confirmed" | "all";
-
-const appointmentServiceNamesById = new Map(
-  appointmentServices.map((service) => [service.id, service.name]),
-);
-
-function formatDate(dateKey: string) {
-  const [year, month, day] = dateKey.split("-").map(Number);
-
-  return new Intl.DateTimeFormat("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month - 1, day)));
+function formatTime(minutes: number) {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
 
-function formatAmount(amount: number) {
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "ARS",
-    maximumFractionDigits: 0,
-  }).format(amount);
+function parseTime(value: string) {
+  const [hours, minutes] = value.split(":").map(Number);
+  return hours * 60 + minutes;
 }
 
 export default function AdminDashboard() {
   const [password, setPassword] = useState("");
-  const [appointments, setAppointments] = useState<AdminAppointment[]>([]);
-  const [filter, setFilter] = useState<AppointmentFilter>("pending_review");
+  const [settings, setSettings] = useState<AppointmentSettings | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [busyAppointmentId, setBusyAppointmentId] = useState<string | null>(
-    null,
-  );
   const [message, setMessage] = useState("");
-
-  const visibleAppointments = useMemo(
-    () =>
-      filter === "all"
-        ? appointments
-        : appointments.filter((appointment) => appointment.status === filter),
-    [appointments, filter],
-  );
 
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch("/api/admin/appointments", {
+    fetch("/api/admin/settings", {
       cache: "no-store",
       signal: controller.signal,
     })
       .then(async (response) => {
+        const result: unknown = await response.json();
         if (response.status === 401) {
           setIsAuthenticated(false);
           return;
         }
 
-        const result = (await response.json()) as {
-          error?: unknown;
-          appointments?: unknown;
-        };
-
-        if (!response.ok) {
-          throw new Error(
-            typeof result.error === "string"
-              ? result.error
-              : "No se pudo verificar el acceso al panel.",
-          );
+        if (!response.ok || !isAppointmentSettings(result)) {
+          const errorMessage =
+            result &&
+            typeof result === "object" &&
+            typeof (result as Record<string, unknown>).error === "string"
+              ? (result as Record<string, string>).error
+              : "No se pudo cargar la configuración del panel.";
+          throw new Error(errorMessage);
         }
 
-        if (!Array.isArray(result.appointments)) {
-          throw new Error("El servidor devolvió una lista de reservas inválida.");
-        }
-
-        setAppointments(result.appointments as AdminAppointment[]);
+        setSettings(result);
         setIsAuthenticated(true);
       })
       .catch((error: unknown) => {
         if (error instanceof Error && error.name === "AbortError") {
           return;
         }
-
         setMessage(
           error instanceof Error
             ? error.message
@@ -130,43 +85,36 @@ export default function AdminDashboard() {
     return () => controller.abort();
   }, []);
 
-  async function loadAppointments() {
+  async function loadSettings() {
     setMessage("");
-
     try {
-      const response = await fetch("/api/admin/appointments", {
+      const response = await fetch("/api/admin/settings", {
         cache: "no-store",
       });
-      const result = (await response.json()) as {
-        error?: unknown;
-        appointments?: unknown;
-      };
-
+      const result: unknown = await response.json();
       if (response.status === 401) {
         setIsAuthenticated(false);
-        setAppointments([]);
+        setSettings(null);
         throw new Error("La sesión venció. Volvé a ingresar.");
       }
 
-      if (!response.ok) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : "No se pudieron cargar las reservas.",
-        );
+      if (!response.ok || !isAppointmentSettings(result)) {
+        const errorMessage =
+          result &&
+          typeof result === "object" &&
+          typeof (result as Record<string, unknown>).error === "string"
+            ? (result as Record<string, string>).error
+            : "No se pudo cargar la configuración del panel.";
+        throw new Error(errorMessage);
       }
 
-      if (!Array.isArray(result.appointments)) {
-        throw new Error("El servidor devolvió una lista de reservas inválida.");
-      }
-
-      setAppointments(result.appointments as AdminAppointment[]);
+      setSettings(result);
       return true;
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "No se pudieron cargar las reservas.",
+          : "No se pudo cargar la configuración del panel.",
       );
       return false;
     } finally {
@@ -196,9 +144,7 @@ export default function AdminDashboard() {
       }
 
       setPassword("");
-      setIsAuthenticated(true);
-      setIsLoading(true);
-      await loadAppointments();
+      setIsAuthenticated(await loadSettings());
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "No se pudo iniciar sesión.",
@@ -207,22 +153,63 @@ export default function AdminDashboard() {
     }
   }
 
+  async function saveSettings(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!settings) {
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const result: unknown = await response.json();
+
+      if (!response.ok || !isAppointmentSettings(result)) {
+        if (response.status === 401) {
+          setIsAuthenticated(false);
+          setSettings(null);
+        }
+        const errorMessage =
+          result &&
+          typeof result === "object" &&
+          typeof (result as Record<string, unknown>).error === "string"
+            ? (result as Record<string, string>).error
+            : "No se pudo guardar la configuración.";
+        throw new Error(errorMessage);
+      }
+
+      setSettings(result);
+      setMessage("Los servicios y horarios se guardaron correctamente.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "No se pudo guardar la configuración.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function signOut() {
     setIsLoading(true);
     setIsSigningOut(true);
     setMessage("");
-
     try {
       const response = await fetch("/api/admin/session", {
         method: "DELETE",
       });
-
       if (!response.ok) {
         throw new Error("No se pudo cerrar la sesión.");
       }
 
       setIsAuthenticated(false);
-      setAppointments([]);
+      setSettings(null);
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "No se pudo cerrar la sesión.",
@@ -233,63 +220,103 @@ export default function AdminDashboard() {
     }
   }
 
-  async function updateAppointment(
-    appointment: AdminAppointment,
-    action: "confirm" | "cancel",
+  function updateService(
+    serviceId: string,
+    changes: Partial<AppointmentService>,
   ) {
-    const actionLabel = action === "confirm" ? "confirmar" : "cancelar";
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.map((service) =>
+              service.id === serviceId ? { ...service, ...changes } : service,
+            ),
+          }
+        : current,
+    );
+    setMessage("");
+  }
+
+  function updateCategoryName(categoryId: string, name: string) {
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            categories: current.categories.map((category) =>
+              category.id === categoryId ? { ...category, name } : category,
+            ),
+          }
+        : current,
+    );
+    setMessage("");
+  }
+
+  function addService(categoryId: string) {
+    if (!settings || settings.services.length >= 100) {
+      return;
+    }
+
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            services: [
+              ...current.services,
+              {
+                id: crypto.randomUUID(),
+                name: "Nuevo servicio",
+                description: "",
+                category: categoryId,
+                duration: 60,
+                price: 0,
+              },
+            ],
+          }
+        : current,
+    );
+    setMessage("");
+  }
+
+  function removeService(serviceId: string) {
+    if (!settings) {
+      return;
+    }
+
+    const service = settings.services.find((item) => item.id === serviceId);
     if (
-      action === "cancel" &&
-      !window.confirm(
-        `¿Querés cancelar el turno de ${appointment.customer_name ?? "esta clienta"}?`,
-      )
+      !service ||
+      settings.services.length <= 1 ||
+      !window.confirm(`¿Querés eliminar el servicio «${service.name}»?`)
     ) {
       return;
     }
 
-    setBusyAppointmentId(appointment.id);
+    setSettings((current) =>
+      current
+        ? {
+            ...current,
+            services: current.services.filter((item) => item.id !== serviceId),
+          }
+        : current,
+    );
     setMessage("");
+  }
 
-    try {
-      const response = await fetch(
-        action === "confirm"
-          ? "/api/admin/appointments"
-          : "/api/admin/appointments/cancel",
-        {
-          method: action === "confirm" ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body:
-            action === "confirm"
-              ? JSON.stringify({ appointmentId: appointment.id, action })
-              : JSON.stringify({ appointmentId: appointment.id }),
-        },
-      );
-      const result = (await response.json()) as { error?: unknown };
-
-      if (!response.ok) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : `No se pudo ${actionLabel} el turno.`,
-        );
+  function updateWorkingDay(day: number, isWorking: boolean) {
+    setSettings((current) => {
+      if (!current) {
+        return current;
       }
 
-      if (await loadAppointments()) {
-        setMessage(
-          action === "confirm"
-            ? "Turno confirmado."
-            : "Turno cancelado y horario liberado.",
-        );
-      }
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : `No se pudo ${actionLabel} el turno.`,
-      );
-    } finally {
-      setBusyAppointmentId(null);
-    }
+      const workingDays = isWorking
+        ? [...current.workingDays, day]
+        : current.workingDays.filter((workingDay) => workingDay !== day);
+      return {
+        ...current,
+        workingDays: workingDays.sort((a, b) => a - b),
+      };
+    });
+    setMessage("");
   }
 
   if (isCheckingSession) {
@@ -307,7 +334,7 @@ export default function AdminDashboard() {
           <p className={styles.eyebrow}>Alma Estudio</p>
           <h1 id="admin-title">Administración</h1>
           <p className={styles.intro}>
-            Ingresá para administrar las solicitudes de turno.
+            Ingresá para editar los servicios y el horario de atención.
           </p>
           <form className={styles.loginForm} onSubmit={signIn}>
             <label htmlFor="admin-password">Contraseña de administradora</label>
@@ -342,192 +369,231 @@ export default function AdminDashboard() {
       <header className={styles.header}>
         <div>
           <p className={styles.eyebrow}>Alma Estudio</p>
-          <h1>Reservas</h1>
+          <h1>Servicios y horarios</h1>
           <p className={styles.intro}>
-            Revisá las solicitudes y administrá los turnos.
+            Editá los servicios ofrecidos, los días y el horario de atención.
           </p>
         </div>
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => {
-              setIsLoading(true);
-              void loadAppointments();
-            }}
-            disabled={isLoading}
-          >
-            <FiRefreshCw aria-hidden="true" />
-            Actualizar
-          </button>
-          <button
-            type="button"
-            className={styles.secondaryButton}
-            onClick={() => void signOut()}
-            disabled={isLoading}
-          >
-            {isSigningOut ? (
-              <Loading label="Cerrando sesión..." inline />
-            ) : (
-              <>
-                <FiLogOut aria-hidden="true" />
-                Salir
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          className={styles.secondaryButton}
+          onClick={() => void signOut()}
+          disabled={isLoading}
+        >
+          {isSigningOut ? (
+            <Loading label="Cerrando sesión..." inline />
+          ) : (
+            <>
+              <FiLogOut aria-hidden="true" />
+              Salir
+            </>
+          )}
+        </button>
       </header>
-
-      <nav className={styles.filters} aria-label="Filtrar reservas">
-        {(
-          [
-            ["pending_review", "Pendientes"],
-            ["confirmed", "Confirmadas"],
-            ["all", "Todas"],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            className={filter === value ? styles.activeFilter : ""}
-            aria-pressed={filter === value}
-            onClick={() => setFilter(value)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
 
       {message && (
         <p className={styles.message} role="status">
           {message}
         </p>
       )}
-      {isLoading ? (
+
+      {!settings ? (
         <div className={styles.emptyState}>
-          <Loading label="Cargando reservas..." />
+          <Loading label="Cargando configuración..." />
         </div>
-      ) : visibleAppointments.length === 0 ? (
-        <p className={styles.emptyState}>
-          {filter === "pending_review"
-            ? "No hay solicitudes pendientes de confirmación."
-            : "No hay reservas para mostrar."}
-        </p>
       ) : (
-        <div className={styles.appointmentList}>
-          {visibleAppointments.map((appointment) => {
-            const selectedServiceNames = appointment.service_ids
-              .map(
-                (serviceId) =>
-                  appointmentServiceNamesById.get(serviceId) ??
-                  legacyAppointmentServiceNames[serviceId],
-              )
-              .filter((name): name is string => Boolean(name));
-            const isPending = appointment.status === "pending_review";
-            const isBusy = busyAppointmentId === appointment.id;
+        <form className={styles.settingsForm} onSubmit={saveSettings}>
+          <section className={styles.settingsSection}>
+            <h2>Horario de atención</h2>
+            <div className={styles.hoursGrid}>
+              <label>
+                Apertura
+                <input
+                  type="time"
+                  step={900}
+                  value={formatTime(settings.openingTime)}
+                  onChange={(event) => {
+                    setSettings((current) =>
+                      current
+                        ? {
+                            ...current,
+                            openingTime: parseTime(event.currentTarget.value),
+                          }
+                        : current,
+                    );
+                    setMessage("");
+                  }}
+                  required
+                />
+              </label>
+              <label>
+                Cierre
+                <input
+                  type="time"
+                  step={900}
+                  value={formatTime(settings.closingTime)}
+                  onChange={(event) => {
+                    setSettings((current) =>
+                      current
+                        ? {
+                            ...current,
+                            closingTime: parseTime(event.currentTarget.value),
+                          }
+                        : current,
+                    );
+                    setMessage("");
+                  }}
+                  required
+                />
+              </label>
+            </div>
+          </section>
 
-            return (
-              <article key={appointment.id} className={styles.appointmentCard}>
-                <header className={styles.cardHeader}>
-                  <div>
-                    <p className={styles.appointmentDate}>
-                      {formatDate(appointment.appointment_date)}
-                    </p>
-                    <h2>
-                      {appointment.start_time.slice(0, 5)} ·{" "}
-                      {appointment.customer_name || "Cliente"}
-                    </h2>
-                  </div>
-                  <span
-                    className={`${styles.status} ${isPending ? styles.pending : styles.confirmed}`}
-                  >
-                    {isPending ? "Pendiente de confirmación" : "Confirmado"}
-                  </span>
-                </header>
+          <section className={styles.settingsSection}>
+            <h2>Días de trabajo</h2>
+            <div className={styles.daysGrid}>
+              {weekdays.map(({ value, label }) => (
+                <label key={value}>
+                  <input
+                    type="checkbox"
+                    checked={settings.workingDays.includes(value)}
+                    onChange={(event) =>
+                      updateWorkingDay(value, event.currentTarget.checked)
+                    }
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </section>
 
-                <dl className={styles.details}>
-                  <div>
-                    <dt>Código de reserva</dt>
-                    <dd>#{appointment.reservation_code}</dd>
-                  </div>
-                  <div>
-                    <dt>Servicios</dt>
-                    <dd>
-                      {selectedServiceNames.join(" + ")}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Duración</dt>
-                    <dd>{appointment.duration_minutes} min</dd>
-                  </div>
-                  <div>
-                    <dt>Total</dt>
-                    <dd>{formatAmount(appointment.total_price)}</dd>
-                  </div>
-                  {appointment.customer_email && (
-                    <div>
-                      <dt>Email</dt>
-                      <dd>
-                        <a href={`mailto:${appointment.customer_email}`}>
-                          {appointment.customer_email}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                  {appointment.customer_phone && (
-                    <div>
-                      <dt>WhatsApp</dt>
-                      <dd>
-                        <a
-                          href={`https://wa.me/${appointment.customer_phone.replace(/\D/g, "")}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          {appointment.customer_phone}
-                        </a>
-                      </dd>
-                    </div>
-                  )}
-                </dl>
-
-                {(isPending || appointment.status === "confirmed") && (
-                  <div className={styles.cardActions}>
-                    {isPending && (
-                      <button
-                        type="button"
-                        className={styles.confirmButton}
-                        disabled={isBusy}
-                        onClick={() =>
-                          void updateAppointment(appointment, "confirm")
-                        }
-                      >
-                        <FiCheck aria-hidden="true" />
-                        Confirmar turno
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.cancelButton}
-                      disabled={isBusy}
-                      onClick={() =>
-                        void updateAppointment(appointment, "cancel")
+          <section className={styles.settingsSection}>
+            <h2>Servicios</h2>
+            <p className={styles.intro}>
+              Editá las categorías y los servicios que se ofrecen.
+            </p>
+            {settings.categories.map((category) => (
+              <fieldset key={category.id} className={styles.serviceCategory}>
+                <legend>{category.name}</legend>
+                <div className={styles.categoryEditorHeader}>
+                  <label className={styles.categoryNameField}>
+                    Nombre de categoría
+                    <input
+                      type="text"
+                      value={category.name}
+                      maxLength={60}
+                      onChange={(event) =>
+                        updateCategoryName(
+                          category.id,
+                          event.currentTarget.value,
+                        )
                       }
-                    >
-                      <FiX aria-hidden="true" />
-                      {isPending ? "Cancelar turno" : "Cancelar reserva"}
-                    </button>
-                    {isBusy && (
-                      <Loading
-                        className={styles.actionStatus}
-                        label="Actualizando..."
-                      />
-                    )}
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </div>
+                      required
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    className={styles.addServiceButton}
+                    disabled={settings.services.length >= 100}
+                    onClick={() => addService(category.id)}
+                  >
+                    <FiPlus aria-hidden="true" />
+                    Agregar servicio
+                  </button>
+                </div>
+                <div className={styles.serviceGrid}>
+                  {settings.services
+                    .filter((service) => service.category === category.id)
+                    .map((service) => (
+                      <article key={service.id} className={styles.serviceCard}>
+                        <label>
+                          Nombre
+                          <input
+                            type="text"
+                            value={service.name}
+                            maxLength={100}
+                            onChange={(event) =>
+                              updateService(service.id, {
+                                name: event.currentTarget.value,
+                              })
+                            }
+                            required
+                          />
+                        </label>
+                        <label>
+                          Descripción
+                          <textarea
+                            value={service.description ?? ""}
+                            maxLength={240}
+                            rows={3}
+                            onChange={(event) =>
+                              updateService(service.id, {
+                                description: event.currentTarget.value,
+                              })
+                            }
+                          />
+                        </label>
+                        <div className={styles.serviceNumbers}>
+                          <label>
+                            Duración (min)
+                            <input
+                              type="number"
+                              min={15}
+                              max={600}
+                              step={15}
+                              value={service.duration}
+                              onChange={(event) =>
+                                updateService(service.id, {
+                                  duration: Number(event.currentTarget.value),
+                                })
+                              }
+                              required
+                            />
+                          </label>
+                          <label>
+                            Precio ($)
+                            <input
+                              type="number"
+                              min={0}
+                              max={10_000_000}
+                              step={500}
+                              value={service.price}
+                              onChange={(event) =>
+                                updateService(service.id, {
+                                  price: Number(event.currentTarget.value),
+                                })
+                              }
+                              required
+                            />
+                          </label>
+                        </div>
+                        <button
+                          type="button"
+                          className={styles.removeServiceButton}
+                          disabled={settings.services.length <= 1}
+                          onClick={() => removeService(service.id)}
+                        >
+                          <FiTrash2 aria-hidden="true" />
+                          Eliminar servicio
+                        </button>
+                      </article>
+                    ))}
+                </div>
+              </fieldset>
+            ))}
+          </section>
+
+          <button type="submit" className={styles.saveButton} disabled={isLoading}>
+            {isLoading ? (
+              <Loading label="Guardando..." inline />
+            ) : (
+              <>
+                <FiSave aria-hidden="true" />
+                Guardar cambios
+              </>
+            )}
+          </button>
+        </form>
       )}
     </main>
   );
