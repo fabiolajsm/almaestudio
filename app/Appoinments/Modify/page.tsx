@@ -3,7 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { FiArrowLeft, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
-import SiteHeader from "../../SiteHeader";
+import SiteHeader from "../../../components/SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
 import SearchAppointment from "@/components/SearchAppointment";

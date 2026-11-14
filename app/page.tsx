@@ -7,32 +7,8 @@ import mobile2 from "./assets/mobile2.jpg";
 import { FaInstagram, FaTiktok, FaWhatsapp } from "react-icons/fa";
 import { ActionCard } from "@/components/ActionCard";
 import { IoLocationOutline } from "react-icons/io5";
-import SiteHeader from "./SiteHeader";
-
-const actions = [
-  {
-    number: "01",
-    title: "Sacar turno",
-    description:
-      "Elegí servicio, día y horario. Te lleva menos de cinco minutos.",
-    href: "/Appoinments/Create",
-    label: "Agendar un turno",
-  },
-  {
-    number: "02",
-    title: "Modificar turno",
-    description: "Encontrá una nueva fecha o un horario que te quede mejor.",
-    href: "/Appoinments/Modify",
-    label: "Modificar turno",
-  },
-  {
-    number: "03",
-    title: "Cancelar turno",
-    description: "Cancelá tu reserva de forma simple.",
-    href: "/Appoinments/Delete",
-    label: "Cancelar turno",
-  },
-];
+import { CARDS_ACTIONS } from "./constants";
+import SiteHeader from "../components/SiteHeader";
 
 export default function Home() {
   return (
@@ -112,7 +88,7 @@ export default function Home() {
           <span id="options-heading">Elige una opción</span>
         </div>
         <div className="actions-grid">
-          {actions.map((action, index) => (
+          {CARDS_ACTIONS.map((action, index) => (
             <ActionCard key={action.number} card={action} index={index} />
           ))}
         </div>

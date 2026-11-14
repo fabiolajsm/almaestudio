@@ -8,7 +8,7 @@
   padding: clamp(20px, 3.5vw, 36px);
   border: 1px solid var(--color-stone);
   border-radius: 20px;
-  background: color-mix(white 80%, transparent);
+  background: color-mix(in srgb, white 80%, transparent);
 }
 
 .workflow {
@@ -43,10 +43,11 @@
   background: transparent;
   color: inherit;
   font: inherit;
+  cursor: default;
 }
 
-.step button:disabled {
-  cursor: default;
+.completeStep button {
+  cursor: pointer;
 }
 
 .currentStep,
@@ -55,16 +56,13 @@
   font-weight: 600;
 }
 
-.completeStep button {
-  cursor: pointer;
-}
-
 .stepNumber {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  place-items: center;
   border: 1px solid var(--color-stone);
   border-radius: 50%;
   color: var(--color-brown);
@@ -92,7 +90,7 @@
   margin: 0 0 6px;
   color: var(--color-brown);
   font-size: var(--font-size-small);
-  font-weight: 600;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
@@ -120,7 +118,7 @@
   display: grid;
   gap: 10px;
   color: var(--color-ink);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   font-weight: 600;
 }
 
@@ -132,7 +130,7 @@
   border-radius: 11px;
   background: color-mix(in srgb, var(--color-cream) 50%, transparent);
   color: var(--color-ink);
-  font: 400 var(--font-size-small-mobile) var(--font-poppins);
+  font: 400 var(--font-size-small) var(--font-poppins);
 }
 
 .contactForm input::placeholder {
@@ -145,7 +143,7 @@
 
 .fieldError {
   color: #8a2f2f;
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   font-weight: 400;
 }
 
@@ -160,19 +158,60 @@
 }
 
 .confirmationMessage {
-  padding: 14px 16px;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(100%, 620px);
+  margin: 0 auto;
+  padding: 28px 24px;
   border-radius: 12px;
-  background: color-mix(in srgb, var(--color-sand) 20%, transparent);
-  color: var(--color-ink);
-  font-size: var(--font-size-small);
-  line-height: 1.5;
-}
-
-.confirmationMessage {
   border: 1px solid var(--color-available);
   background: color-mix(in srgb, var(--color-available) 8%, white);
+  color: var(--color-ink);
+  text-align: center;
+  line-height: 1.6;
 }
 
+.confirmationIcon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-available) 16%, white);
+  color: var(--color-available);
+  font-size: 22px;
+}
+
+.confirmationTitle {
+  margin: 0;
+  color: var(--color-ink);
+  font: 500 var(--font-size-medium) var(--font-seasons);
+}
+
+.confirmationText,
+.confirmationNote {
+  margin: 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+}
+
+.confirmationCode {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-ink);
+  font-size: var(--font-size-medium);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.confirmationNote {
+  font-style: italic;
+}
+
+.homeButton {
+  justify-self: center;
+}
 
 .stepActions {
   display: flex;
@@ -181,49 +220,6 @@
   margin-top: 28px;
 }
 
-.primaryButton,
-.secondaryButton {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border: 1px solid var(--color-ink);
-  border-radius: 11px;
-  cursor: pointer;
-  font: 600 var(--font-size-small) var(--font-poppins);
-  transition: background-color 160ms ease, color 160ms ease;
-}
-
-.primaryButton {
-  background: var(--color-ink);
-  color: white
-}
-
-.primaryButton:hover:not(:disabled) {
-  background: transparent;
-  color: var(--color-ink);
-}
-
-.primaryButton:disabled {
-  border-color: var(--color-cream);
-  background: var(--color-cream);
-  cursor: not-allowed;
-}
-
-.secondaryButton {
-  border-color: var(--color-stone);
-  background: transparent;
-  color: var(--color-ink);
-}
-
-.secondaryButton:hover {
-  background: var(--color-cream);
-}
-
-.primaryButton:focus-visible,
-.secondaryButton:focus-visible,
 .step button:focus-visible {
   outline: 2px solid var(--color-brown);
   outline-offset: 3px;
@@ -241,20 +237,8 @@
 }
 
 @media (max-width: 1024px) {
-  .step,
-  .stepKicker,
-  .stepDescription,
-  .primaryButton,
-  .secondaryButton {
-    font-size: var(--font-size-small-mobile);
-  }
-
   .stepTitle {
     font-size: var(--font-size-large-mobile);
-  }
-
-  .confirmationMessage {
-    font-size: var(--font-size-small-mobile);
   }
 }
 
@@ -266,17 +250,31 @@
   }
 
   .stepper {
-    gap: 6px;
+    gap: 8px;
     margin-bottom: 26px;
+    flex-wrap: wrap;
+  }
+
+  .step {
+    flex: 1 1 30%;
+  }
+
+  .step button {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.2;
   }
 
   .stepConnector {
-    width: clamp(8px, 4vw, 22px);
+    display: none;
   }
 
   .stepNumber {
     width: 25px;
     height: 25px;
+    flex-shrink: 0;
   }
 }
 
@@ -285,7 +283,7 @@
     justify-content: space-between;
   }
 
-  .stepConnector {
-    width: 5px;
+  .step {
+    flex-basis: calc(33.333% - 6px);
   }
 }

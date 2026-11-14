@@ -426,7 +426,7 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        Atención:{" "}
+        Atención los:{" "}
         {settings.workingDays
           .map(
             (day) =>

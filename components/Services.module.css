@@ -199,17 +199,6 @@
   font-size: var(--font-size-small);
 }
 
-@media (max-width: 1024px) {
-  .categoryToggle,
-  .name,
-  .description,
-  .duration,
-  .price,
-  .selectionCount {
-    font-size: var(--font-size-small-mobile);
-  }
-}
-
 @media (max-width: 480px) {
   .service {
     padding-inline: 12px;

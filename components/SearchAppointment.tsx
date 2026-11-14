@@ -10,6 +10,7 @@ import Loading from "./Loading";
 import TurnSummary from "./TurnSummary";
 import type { Service } from "./Services";
 import styles from "./SearchAppointment.module.css";
+import { ERROR_MESSAGES } from "@/app/constants";
 
 export type AppointmentSearchResult = {
   reservationCode: number;
@@ -109,7 +110,7 @@ export default function SearchAppointment({
         throw new Error(
           typeof result.error === "string"
             ? result.error
-            : "No se pudo encontrar el turno. Intentá nuevamente.",
+            : ERROR_MESSAGES.APPOINTMENT_NOT_FOUND,
         );
       }
 
@@ -123,7 +124,7 @@ export default function SearchAppointment({
       setMessage(
         error instanceof Error
           ? error.message
-          : "No se pudo encontrar el turno. Intentá nuevamente.",
+          : ERROR_MESSAGES.APPOINTMENT_NOT_FOUND,
       );
     } finally {
       setIsBusy(false);
@@ -158,7 +159,7 @@ export default function SearchAppointment({
           />
           <button
             type="button"
-            className={styles.searchButton}
+            className={`secondary-button ${styles.searchButton}`}
             onClick={searchAnotherAppointment}
           >
             Buscar otro turno
@@ -213,7 +214,7 @@ export default function SearchAppointment({
             )}
             <button
               type="submit"
-              className={styles.searchButton}
+              className={`primary-button ${styles.searchButton}`}
               disabled={
                 isBusy || reservationCode.length === 0 || email.trim() === ""
               }

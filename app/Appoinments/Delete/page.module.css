@@ -4,7 +4,8 @@
   padding: clamp(22px, 4vw, 32px);
   border: 1px solid var(--color-stone);
   border-radius: 20px;
-  background: color-mix(white 80%, transparent);
+  background: color-mix(in srgb, white 80%, transparent);
+  color: var(--color-ink);
 }
 
 .cardHeader {
@@ -17,16 +18,33 @@
 }
 
 .cardHeader h2,
-.success h2 {
+.success h2,
+.cancelHeading h2 {
   margin: 0;
   color: var(--color-ink);
-  font: 500 clamp(26px, 4vw, 32px)/1.15 var(--font-seasons);
+  font-family: var(--font-seasons);
+  font-size: var(--font-size-large-mobile);
+  line-height: normal;
+}
+
+.cancelHeading {
+  max-width: 600px;
+  margin-bottom: 22px;
+}
+
+.cancelEyebrow {
+  margin: 0 0 5px;
+  color: var(--color-brown);
+  font-size: var(--font-size-small);
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .reservationCode {
   margin: 0 0 8px;
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   font-weight: 600;
 }
 
@@ -39,7 +57,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, #4d7b58 12%, transparent);
   color: #355d3d;
-  font-size: 12px;
+  font-size: var(--font-size-small);
   font-weight: 600;
 }
 
@@ -58,21 +76,21 @@
   border-bottom: 1px solid var(--color-stone);
 }
 
-.appointmentDetails > div {
+.appointmentDetails>div {
   display: grid;
   grid-template-columns: minmax(88px, 0.35fr) 1fr;
   gap: 12px;
 }
 
-.appointmentDetails dt {
+.appointmentDetails dt,
+.appointmentDetails dd {
+  margin: 0;
   color: var(--color-brown);
   font-size: var(--font-size-small-mobile);
 }
 
 .appointmentDetails dd {
-  margin: 0;
   color: var(--color-ink);
-  font-size: var(--font-size-small-mobile);
   font-weight: 600;
 }
 
@@ -100,7 +118,7 @@
   display: grid;
   gap: 10px;
   color: var(--color-ink);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   font-weight: 600;
 }
 
@@ -112,7 +130,7 @@
   border-radius: 11px;
   background: color-mix(in srgb, var(--color-cream) 50%, transparent);
   color: var(--color-ink);
-  font: 400 var(--font-size-small-mobile) var(--font-poppins);
+  font: 400 var(--font-size-small) var(--font-poppins);
 }
 
 .form input:focus-visible {
@@ -120,52 +138,71 @@
   outline-offset: 2px;
 }
 
-.notice {
-  margin: 0;
-  padding: 14px 16px;
-  border-left: 3px solid var(--color-sand);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-sand) 9%, transparent);
-  color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
-  line-height: 1.5;
-}
-
 .error {
   margin: 0;
   color: #8a2f2f;
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   line-height: 1.5;
 }
 
 .actions {
   display: flex;
+  justify-content: flex-start;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.cancelButton,
-.keepButton {
+.success {
+  display: grid;
+  justify-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.successIcon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 50%;
+  font-size: var(--font-size-medium);
+  background: color-mix(in srgb, var(--color-available) 14%, white);
+  color: var(--color-available);
+}
+
+.success p {
+  margin: 0;
+  color: var(--color-brown);
+  font-size: var(--font-size-medium);
+  line-height: 1.5;
+}
+
+.cancelPanel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.cancelButton {
   display: inline-flex;
   min-height: 42px;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 15px;
-  border: 1px solid var(--color-brown);
+  padding: 10px 16px;
+  border: 1px solid #8a2f2f;
   border-radius: 11px;
+  background: color-mix(in srgb, #8a2f2f 8%, white);
+  color: #8a2f2f;
   cursor: pointer;
-  font: 600 var(--font-size-small-mobile) var(--font-poppins);
-  text-decoration: none;
-}
-
-.cancelButton {
-  background: var(--color-brown);
-  color: var(--color-cream);
+  font: 600 var(--font-size-small) var(--font-poppins);
+  transition: background-color 160ms ease, color 160ms ease;
 }
 
 .cancelButton:hover:not(:disabled) {
-  background: var(--color-ink);
+  background: #8a2f2f;
+  color: white;
 }
 
 .cancelButton:disabled {
@@ -173,38 +210,9 @@
   opacity: 0.6;
 }
 
-.keepButton {
-  border-color: var(--color-stone);
-  background: transparent;
-  color: var(--color-ink);
-}
-
-.keepButton:hover {
-  background: var(--color-cream);
-}
-
-.keepButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.cancelButton:focus-visible,
-.keepButton:focus-visible {
-  outline: 2px solid var(--color-brown);
+.cancelButton:focus-visible {
+  outline: 2px solid #8a2f2f;
   outline-offset: 3px;
-}
-
-.success {
-  display: grid;
-  justify-items: start;
-  gap: 16px;
-}
-
-.success p {
-  margin: 0;
-  color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
-  line-height: 1.5;
 }
 
 @media (max-width: 600px) {
@@ -212,12 +220,19 @@
     flex-direction: column;
   }
 
-  .cancelButton,
-  .keepButton {
+  .actions>* {
     width: 100%;
   }
 
   .cardHeader {
     flex-direction: column;
+  }
+
+  .success h2 {
+    font-size: var(--font-size-medium);
+  }
+
+  .success p {
+    font-size: var(--font-size-small);
   }
 }

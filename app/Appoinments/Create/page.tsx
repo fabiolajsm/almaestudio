@@ -2,29 +2,32 @@
 
 import { useState } from "react";
 import type { SubmitEvent } from "react";
+import Link from "next/link";
 import { getArgentinaDateKey } from "../appointmentDates";
 import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
 
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
-import SiteHeader from "../../SiteHeader";
+import SiteHeader from "../../../components/SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
 import Services from "@/components/Services";
 import TurnSummary from "@/components/TurnSummary";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
+import { CREATE_STEPS } from "@/app/constants";
 
 import styles from "./page.module.css";
-
-const steps = ["Servicio", "Día y hora", "Datos de contacto"];
 
 type ApiError = {
   error?: string;
 };
 
 export default function CreateAppointmentPage() {
-  const { settings, isLoading: isLoadingSettings, error: settingsError } =
-    useAppointmentSettings();
+  const {
+    settings,
+    isLoading: isLoadingSettings,
+    error: settingsError,
+  } = useAppointmentSettings();
   const [today, setToday] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
@@ -56,7 +59,7 @@ export default function CreateAppointmentPage() {
     {
       kicker: "Paso 02",
       title: "Elegí día y horario.",
-      description: "Los horarios tachados ya están ocupados.",
+      description: "Los horarios deshabilitados ya están ocupados.",
     },
     {
       kicker: "Paso 03",
@@ -76,8 +79,9 @@ export default function CreateAppointmentPage() {
       <div className={styles.bookingPanel}>
         <div className={styles.workflow}>
           <ol className={styles.stepper} aria-label="Pasos para sacar turno">
-            {steps.map((step, index) => {
-              const isComplete = index < currentStep || (isSubmitted && index === currentStep);
+            {CREATE_STEPS.map((step, index) => {
+              const isComplete =
+                index < currentStep || (isSubmitted && index === currentStep);
               const isCurrent = index === currentStep;
 
               return (
@@ -88,11 +92,7 @@ export default function CreateAppointmentPage() {
                   <button
                     type="button"
                     aria-current={isCurrent ? "step" : undefined}
-                    disabled={
-                      !isComplete ||
-                      isBusy ||
-                      isSubmitted
-                    }
+                    disabled={!isComplete || isBusy || isSubmitted}
                     onClick={() => void goToStep(index)}
                   >
                     <span className={styles.stepNumber} aria-hidden="true">
@@ -100,7 +100,7 @@ export default function CreateAppointmentPage() {
                     </span>
                     {step}
                   </button>
-                  {index < steps.length - 1 && (
+                  {index < CREATE_STEPS.length - 1 && (
                     <span className={styles.stepConnector} aria-hidden="true" />
                   )}
                 </li>
@@ -111,15 +111,17 @@ export default function CreateAppointmentPage() {
           <section className={styles.stepContent} aria-live="polite">
             <p className={styles.stepKicker}>{stepContent.kicker}</p>
             <h2 className={styles.stepTitle}>{stepContent.title}</h2>
-            <p className={styles.stepDescription}>{stepContent.description}</p>
+            <p className={styles.stepDescription}>
+              {isSubmitted ? null : stepContent.description}
+            </p>
             {settingsError && (
               <p className={styles.formMessage} role="alert">
                 {settingsError}
               </p>
             )}
 
-            {currentStep === 0 && (
-              settings ? (
+            {currentStep === 0 &&
+              (settings ? (
                 <Services
                   categories={settings.categories}
                   services={settings.services}
@@ -128,8 +130,7 @@ export default function CreateAppointmentPage() {
                 />
               ) : isLoadingSettings ? (
                 <Loading label="Cargando servicios..." />
-              ) : null
-            )}
+              ) : null)}
 
             {currentStep === 1 &&
               (today && settings ? (
@@ -157,20 +158,39 @@ export default function CreateAppointmentPage() {
             {currentStep === 2 && (
               <div className={styles.contactStep}>
                 {isSubmitted ? (
-                  <p className={styles.confirmationMessage} role="status">
-                    <strong>¡Tu turno fue agendado con éxito!</strong>
-                    <br />
-                    Código de reserva: <strong>#{reservationCode}</strong>
-                    <br />
-                    ⚠️ <strong>Guardá este código:</strong> Es muy importante
-                    que lo conserves, ya que lo vas a necesitar si querés
-                    modificar o cancelar tu reserva más adelante.
-                    <br />
-                    <em>
-                      (En breve vas a recibir un email con el detalle completo
-                      de tu turno)
-                    </em>
-                  </p>
+                  <>
+                    <div className={styles.confirmationMessage} role="status">
+                      <span
+                        className={styles.confirmationIcon}
+                        aria-hidden="true"
+                      >
+                        <FiCheck />
+                      </span>
+                      <h3 className={styles.confirmationTitle}>
+                        ¡Tu turno fue agendado con éxito!
+                      </h3>
+                      <p className={styles.confirmationText}>
+                        Código de reserva
+                        <span className={styles.confirmationCode}>
+                          #{reservationCode}
+                        </span>
+                      </p>
+                      <p className={styles.confirmationText}>
+                        <strong>Guardá este código:</strong> lo vas a necesitar
+                        si querés modificar o cancelar tu reserva.
+                      </p>
+                      <p className={styles.confirmationNote}>
+                        En breve vas a recibir un email con el detalle completo
+                        de tu turno.
+                      </p>
+                    </div>
+                    <Link
+                      className={`primary-button ${styles.homeButton}`}
+                      href="/"
+                    >
+                      Volver al inicio
+                    </Link>
+                  </>
                 ) : (
                   <>
                     <form
@@ -180,13 +200,13 @@ export default function CreateAppointmentPage() {
                       onSubmit={submitAppointment}
                     >
                       <label>
-                        Nombre y apellido
+                        Nombre y Apellido
                         <input
                           id="appointment-name"
                           name="name"
                           type="text"
                           autoComplete="name"
-                          placeholder="¿Cómo te llamás?"
+                          placeholder="¿Cuál es tu nombre?"
                           maxLength={100}
                           value={contact.name}
                           aria-invalid={
@@ -313,7 +333,7 @@ export default function CreateAppointmentPage() {
               {currentStep > 0 && !isSubmitted && (
                 <button
                   type="button"
-                  className={styles.secondaryButton}
+                  className="secondary-button"
                   disabled={isBusy}
                   onClick={() => void goToStep(currentStep - 1)}
                 >
@@ -325,7 +345,7 @@ export default function CreateAppointmentPage() {
                 <button
                   key="continue"
                   type="button"
-                  className={styles.primaryButton}
+                  className="primary-button"
                   disabled={
                     isBusy ||
                     !settings ||
@@ -347,13 +367,13 @@ export default function CreateAppointmentPage() {
                     key="submit"
                     type="submit"
                     form="appointment-contact-form"
-                    className={styles.primaryButton}
+                    className="primary-button"
                     disabled={
                       isBusy ||
                       Boolean(
                         contactErrors.name ||
-                          contactErrors.email ||
-                          contactErrors.phone,
+                        contactErrors.email ||
+                        contactErrors.phone,
                       )
                     }
                   >
@@ -463,7 +483,8 @@ export default function CreateAppointmentPage() {
           setSelectedTime(null);
         }
         throw new Error(
-          result.error || "No se pudo completar la reserva. Intentá nuevamente.",
+          result.error ||
+            "No se pudo completar la reserva. Intentá nuevamente.",
         );
       }
 
