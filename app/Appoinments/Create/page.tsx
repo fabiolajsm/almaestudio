@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import type { SubmitEvent } from "react";
-import Link from "next/link";
 import { getArgentinaDateKey } from "../appointmentDates";
 import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
 
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../AppointmentHeader";
+import SuccessState from "../SuccessState";
 import SiteHeader from "../../../components/SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
@@ -59,7 +59,8 @@ export default function CreateAppointmentPage() {
     {
       kicker: "Paso 02",
       title: "Elegí día y horario",
-      description: "Mostramos los turnos disponibles según el día y la duración de los servicios que elegiste",
+      description:
+        "Mostramos los turnos disponibles según el día y la duración de los servicios que elegiste",
     },
     {
       kicker: "Paso 03",
@@ -162,39 +163,19 @@ export default function CreateAppointmentPage() {
             {currentStep === 2 && (
               <div className={styles.contactStep}>
                 {isSubmitted ? (
-                  <>
-                    <div className={styles.confirmationMessage} role="status">
-                      <span
-                        className={styles.confirmationIcon}
-                        aria-hidden="true"
-                      >
-                        <FiCheck />
-                      </span>
-                      <h3 className={styles.confirmationTitle}>
-                        ¡Tu turno fue agendado con éxito!
-                      </h3>
-                      <p className={styles.confirmationText}>
-                        Código de reserva
-                        <span className={styles.confirmationCode}>
-                          #{reservationCode}
-                        </span>
-                      </p>
-                      <p className={styles.confirmationText}>
-                        <strong>Guardá este código:</strong> lo vas a necesitar
-                        si querés modificar o cancelar tu reserva.
-                      </p>
-                      <p className={styles.confirmationNote}>
-                        En breve vas a recibir un email con el detalle completo
-                        de tu turno
-                      </p>
-                    </div>
-                    <Link
-                      className={`primary-button ${styles.homeButton}`}
-                      href="/"
-                    >
-                      Volver al inicio
-                    </Link>
-                  </>
+                  <SuccessState
+                    icon={<FiCheck />}
+                    title="¡Tu turno fue agendado con éxito!"
+                    description={
+                      <>
+                        Código de reserva <strong>#{reservationCode}</strong>
+                        <br />
+                        En breve recibirás un email con el detalle completo del
+                        turno. Con el código de reserva vas a poder modificar
+                        y/o cancelar el mismo.
+                      </>
+                    }
+                  />
                 ) : (
                   <>
                     <form

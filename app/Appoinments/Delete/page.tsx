@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FiArrowRight, FiX } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
 import { FaRegCalendarTimes } from "react-icons/fa";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../../components/SiteHeader";
-import Loading from "@/components/Loading";
 import SearchAppointment from "@/components/SearchAppointment";
 import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
 } from "@/components/SearchAppointment";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import SuccessState from "../SuccessState";
 import styles from "./page.module.css";
 import { ERROR_MESSAGES } from "@/app/constants";
 
@@ -45,22 +46,17 @@ export default function DeleteAppointmentPage() {
         }
       />
       {isCancelled ? (
-        <section className={styles.confirmation}>
-          <div className={styles.success} role="status">
-            <span className={styles.successIcon} aria-hidden="true">
-              <FaRegCalendarTimes />
-            </span>
-            <h2>Tu turno fue cancelado</h2>
-            <p>
+        <SuccessState
+          icon={<FaRegCalendarTimes />}
+          title="Tu turno fue cancelado"
+          description={
+            <>
               La reserva <strong>#{reservationCode}</strong> fue eliminada y el
-              horario volvió a estar disponible.
-            </p>
-            <Link className="primary-button" href="/">
-              Volver al inicio
-              <FiArrowRight aria-hidden="true" />
-            </Link>
-          </div>
-        </section>
+              horario volvió a estar disponible. En breve recibirás un email con la confirmación de la cancelación.
+            </>
+          }
+          variant="danger"
+        />
       ) : (
         <>
           <SearchAppointment
@@ -103,56 +99,28 @@ export default function DeleteAppointmentPage() {
                   disabled={isBusy}
                   onClick={() => setShowCancelConfirmation(true)}
                 >
-                  {isBusy ? (
-                    <Loading label="Cancelando..." inline />
-                  ) : (
-                    <>
-                      <FiX aria-hidden="true" />
-                      Sí, cancelar turno
-                    </>
-                  )}
+                  <FiX aria-hidden="true" />
+                  Sí, cancelar turno
                 </button>
               </div>
             </section>
           )}
 
-          {showCancelConfirmation && (
-            <div className={styles.dialogBackdrop}>
-              <section
-                className={styles.dialog}
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="cancel-dialog-title"
-              >
-                <h2 id="cancel-dialog-title">
-                  ¿Estás segura de cancelar el turno?
-                </h2>
-                <div className={styles.dialogActions}>
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={() => setShowCancelConfirmation(false)}
-                  >
-                    No, mantener mi turno
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cancelButton}
-                    onClick={() => {
-                      setShowCancelConfirmation(false);
-                      void cancelAppointment();
-                    }}
-                  >
-                    Sí, confirmo
-                  </button>
-                </div>
-              </section>
-            </div>
-          )}
+          <ConfirmDialog
+            isOpen={showCancelConfirmation}
+            title="¿Estás segura de cancelar el turno?"
+            cancelText="No, mantener mi turno"
+            confirmText="Sí, confirmo"
+            isBusy={isBusy}
+            onCancel={() => setShowCancelConfirmation(false)}
+            onConfirm={() => void cancelAppointment()}
+            confirmButtonClassName={styles.cancelButton}
+          />
         </>
       )}
     </main>
   );
+
   function handleAppointmentFound(
     foundAppointment: AppointmentSearchResult,
     credentials: AppointmentSearchCredentials,
@@ -195,6 +163,7 @@ export default function DeleteAppointmentPage() {
       }
 
       setIsCancelled(true);
+      setShowCancelConfirmation(false);
     } catch (error) {
       setMessage(
         error instanceof Error

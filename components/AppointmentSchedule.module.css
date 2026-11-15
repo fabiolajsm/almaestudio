@@ -189,6 +189,10 @@
   font-size: var(--font-size-small);
 }
 
+.chooseDate {
+  font-weight: 600;
+}
+
 @media (max-width: 480px) {
   .months {
     grid-template-columns: minmax(0, 1fr);

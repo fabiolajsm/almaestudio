@@ -25,7 +25,7 @@ export default function Services({
   selectedServiceIds,
   onToggleService,
 }: ServicesProps) {
-  const [openCategory, setOpenCategory] = useState<string | null>("manicura");
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
   const selectedCount = selectedServiceIds.length;
   const selectionLabel =
     selectedCount === 1

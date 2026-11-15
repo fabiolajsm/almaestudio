@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { FiArrowLeft, FiCheck } from "react-icons/fi";
+import { FiArrowLeft, FiCheck, FiEdit3 } from "react-icons/fi";
+import { FaRegCalendarAlt } from "react-icons/fa";
 import AppointmentHeader from "../AppointmentHeader";
 import SiteHeader from "../../../components/SiteHeader";
 import AppointmentSchedule from "@/components/AppointmentSchedule";
@@ -12,8 +13,9 @@ import type {
   AppointmentSearchResult,
 } from "@/components/SearchAppointment";
 import Services from "@/components/Services";
-import TurnSummary from "@/components/TurnSummary";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import SuccessState from "../SuccessState";
 import {
   getArgentinaDateKey,
   getNextAppointmentDate,
@@ -38,8 +40,11 @@ type ModifyApiResult = {
 };
 
 export default function ModifyAppointmentPage() {
-  const { settings, isLoading: isLoadingSettings, error: settingsError } =
-    useAppointmentSettings();
+  const {
+    settings,
+    isLoading: isLoadingSettings,
+    error: settingsError,
+  } = useAppointmentSettings();
   const today = useSyncExternalStore(
     subscribeToDateChanges,
     getCurrentArgentinaDate,
@@ -58,6 +63,7 @@ export default function ModifyAppointmentPage() {
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [isSaved, setIsSaved] = useState(false);
+  const [showModifyConfirmation, setShowModifyConfirmation] = useState(false);
   const currentSelectedDate = selectedDate || initialDate;
 
   const selectedServices = (settings?.services ?? []).filter((service) =>
@@ -68,10 +74,169 @@ export default function ModifyAppointmentPage() {
     0,
   );
 
+  // Comparamos si hubo cambios reales respecto al turno original
+  const hasChanges = appointment
+    ? JSON.stringify([...selectedServiceIds].sort()) !==
+        JSON.stringify([...appointment.serviceIds].sort()) ||
+      selectedDate !== appointment.appointmentDate ||
+      selectedTime !== appointment.startTime.slice(0, 5)
+    : false;
+
+  return (
+    <main className="site-shell">
+      <SiteHeader />
+      <AppointmentHeader
+        actionLabel="Modificar turno"
+        title="Hacé lugar a un cambio."
+        description={
+          !isSaved
+            ? "Buscá tu reserva con el código y el email asociado para modificarla."
+            : undefined
+        }
+      />
+
+      {isSaved ? (
+        <SuccessState
+          icon={<FaRegCalendarAlt />}
+          title="¡Turno modificado con éxito!"
+          description={
+            <>
+              La reserva <strong>#{reservationCode}</strong> fue actualizada
+              correctamente. En breve recibirás un email con el detalle completo
+              del turno modificado.
+            </>
+          }
+        />
+      ) : (
+        <>
+          <SearchAppointment
+            services={settings?.services ?? []}
+            onAppointmentFound={handleAppointmentFound}
+            onSearchAnother={searchAnotherAppointment}
+          />
+          {settingsError && (
+            <p className={styles.message} role="alert">
+              {settingsError}
+            </p>
+          )}
+
+          {appointment && (
+            <section
+              id="edit-appointment"
+              className={styles.modifyContainer}
+              aria-labelledby="edit-title"
+            >
+              <h3 className={styles.modifyTitle}>Modificá tu turno actual</h3>
+              <p className={styles.modifyDescription}>
+                Tus datos actuales (servicios, fecha y horario) ya están
+                preseleccionados para que puedas editarlos fácilmente. En caso
+                de necesitar cambiar el contacto asociado al turno, deberás
+                cancelar la reserva y crear una nueva.
+              </p>
+
+              <div>
+                <h3 className={styles.editorSectionText}>Servicios</h3>
+                {settings ? (
+                  <Services
+                    categories={settings.categories}
+                    services={settings.services}
+                    selectedServiceIds={selectedServiceIds}
+                    onToggleService={(serviceId) => {
+                      setSelectedServiceIds((currentIds) =>
+                        currentIds.includes(serviceId)
+                          ? currentIds.filter((id) => id !== serviceId)
+                          : [...currentIds, serviceId],
+                      );
+                      setMessage("");
+                    }}
+                  />
+                ) : isLoadingSettings ? (
+                  <Loading label="Cargando servicios..." />
+                ) : (
+                  <p role="errorMessage">{settingsError}</p>
+                )}
+              </div>
+
+              <div>
+                <h3 className={styles.editorSectionText}>Fechas</h3>
+                {today && settings ? (
+                  <AppointmentSchedule
+                    today={today}
+                    serviceDuration={selectedDuration}
+                    settings={settings}
+                    selectedDate={currentSelectedDate}
+                    selectedTime={selectedTime}
+                    appointmentLookup={{
+                      reservationCode: appointment.reservationCode,
+                      email,
+                    }}
+                    onSelectDate={(date) => {
+                      setSelectedDate(date);
+                      setSelectedTime("");
+                      setMessage("");
+                    }}
+                    onSelectTime={(time) => {
+                      setSelectedTime(time || "");
+                      setMessage("");
+                    }}
+                    showHeading={false}
+                  />
+                ) : isLoadingSettings ? (
+                  <Loading label="Preparando la agenda..." />
+                ) : (
+                  <p role="errorMessage">{settingsError}</p>
+                )}
+              </div>
+
+              <div className={styles.buttonGroup}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={isBusy}
+                  onClick={discardChanges}
+                >
+                  <FiArrowLeft aria-hidden="true" />
+                  Descartar cambios
+                </button>
+                <button
+                  type="button"
+                  className="primary-button"
+                  disabled={
+                    isBusy ||
+                    !settings ||
+                    isLoadingSettings ||
+                    selectedServiceIds.length === 0 ||
+                    !selectedDate ||
+                    !selectedTime ||
+                    !hasChanges
+                  }
+                  onClick={() => setShowModifyConfirmation(true)}
+                >
+                  <FiCheck aria-hidden="true" />
+                  Guardar cambios
+                </button>
+              </div>
+            </section>
+          )}
+
+          <ConfirmDialog
+            isOpen={showModifyConfirmation}
+            title="¿Confirmar los cambios en el turno?"
+            description="Se actualizarán los servicios y/o el horario de tu reserva."
+            cancelText="Volver a revisar"
+            confirmText="Sí, guardar cambios"
+            isBusy={isBusy}
+            onCancel={() => setShowModifyConfirmation(false)}
+            onConfirm={() => void submitAppointmentAction()}
+          />
+        </>
+      )}
+    </main>
+  );
+
   async function submitAppointmentAction() {
     setIsBusy(true);
     setMessage("");
-    setIsSaved(false);
 
     try {
       const response = await fetch("/api/appointments/modify", {
@@ -89,23 +254,8 @@ export default function ModifyAppointmentPage() {
       const result = (await response.json()) as ModifyApiResult;
 
       if (response.ok && result.modified === true) {
-        setAppointment((current) =>
-          current
-            ? {
-                ...current,
-                serviceIds: selectedServiceIds,
-                appointmentDate: selectedDate,
-                startTime: selectedTime,
-                durationMinutes: selectedDuration,
-                totalPrice: selectedServices.reduce(
-                  (total, service) => total + service.price,
-                  0,
-                ),
-              }
-            : current,
-        );
         setIsSaved(true);
-        setMessage("Los datos de tu turno se actualizaron correctamente.");
+        setShowModifyConfirmation(false);
         return;
       }
 
@@ -122,6 +272,7 @@ export default function ModifyAppointmentPage() {
       );
     } finally {
       setIsBusy(false);
+      setShowModifyConfirmation(false);
     }
   }
 
@@ -159,160 +310,5 @@ export default function ModifyAppointmentPage() {
     setSelectedDate(appointment.appointmentDate);
     setSelectedTime(appointment.startTime.slice(0, 5));
     setMessage("");
-    setIsSaved(false);
   }
-
-  return (
-    <main className="site-shell">
-      <SiteHeader />
-      <AppointmentHeader
-        actionLabel="Modificar turno"
-        title="Hacé lugar a un cambio."
-        description="Buscá tu reserva con el código y el email asociado para modificarla."
-      />
-
-      <SearchAppointment
-        services={settings?.services ?? []}
-        onAppointmentFound={handleAppointmentFound}
-        onSearchAnother={searchAnotherAppointment}
-      />
-      {settingsError && (
-        <p className={styles.message} role="alert">
-          {settingsError}
-        </p>
-      )}
-
-      {appointment && (
-        <div className={styles.modifyLayout}>
-          <section
-            className={styles.reservation}
-            aria-label="Resumen de la reserva"
-          >
-            <p className={styles.reservationCode}>
-              Turno #{appointment.reservationCode}
-              {appointment.customerName && ` · ${appointment.customerName}`}
-            </p>
-            <p className={styles.eyebrow}>Vista previa de los cambios</p>
-            <TurnSummary
-              services={selectedServices}
-              selectedDate={currentSelectedDate}
-              selectedTime={selectedTime}
-            />
-          </section>
-
-          <section
-            id="edit-appointment"
-            className={styles.editor}
-            aria-labelledby="edit-title"
-          >
-            <div className={styles.editorHeading}>
-              <p className={styles.eyebrow}>Modificar turno</p>
-              <h2 id="edit-title">Ajustá tu próximo momento.</h2>
-              <p>Elegí los servicios, el día o el horario que prefieras.</p>
-            </div>
-
-            <div className={styles.editorSection}>
-              <h3>Servicios</h3>
-              {settings ? (
-                <Services
-                  categories={settings.categories}
-                  services={settings.services}
-                  selectedServiceIds={selectedServiceIds}
-                  onToggleService={(serviceId) => {
-                    setSelectedServiceIds((currentIds) =>
-                      currentIds.includes(serviceId)
-                        ? currentIds.filter((id) => id !== serviceId)
-                        : [...currentIds, serviceId],
-                    );
-                    setMessage("");
-                    setIsSaved(false);
-                  }}
-                />
-              ) : isLoadingSettings ? (
-                <Loading label="Cargando servicios..." />
-              ) : (
-                <p role="alert">{settingsError}</p>
-              )}
-            </div>
-
-            <div className={styles.editorSection}>
-              <h3>Fecha y horario</h3>
-              {today && settings ? (
-                <AppointmentSchedule
-                  today={today}
-                  serviceDuration={selectedDuration}
-                  settings={settings}
-                  selectedDate={currentSelectedDate}
-                  selectedTime={selectedTime}
-                  appointmentLookup={{
-                    reservationCode: appointment.reservationCode,
-                    email,
-                  }}
-                  onSelectDate={(date) => {
-                    setSelectedDate(date);
-                    setSelectedTime("");
-                    setMessage("");
-                    setIsSaved(false);
-                  }}
-                  onSelectTime={(time) => {
-                    setSelectedTime(time || "");
-                    setMessage("");
-                    setIsSaved(false);
-                  }}
-                  showHeading={false}
-                />
-              ) : isLoadingSettings ? (
-                <Loading label="Preparando la agenda..." />
-              ) : (
-                <p role="alert">{settingsError}</p>
-              )}
-            </div>
-
-            {message && (
-              <p
-                className={`${styles.message} ${isSaved ? styles.successMessage : ""}`}
-                role={isSaved ? "status" : "alert"}
-              >
-                {message}
-              </p>
-            )}
-
-            <div className={styles.editorActions}>
-              <button
-                type="button"
-                className={styles.saveButton}
-                disabled={
-                  isBusy ||
-                      !settings ||
-                      isLoadingSettings ||
-                  selectedServiceIds.length === 0 ||
-                  !selectedDate ||
-                  !selectedTime
-                }
-                onClick={() => void submitAppointmentAction()}
-              >
-                {isBusy ? (
-                  <Loading label="Guardando cambios..." inline />
-                ) : (
-                  <>
-                    <FiCheck aria-hidden="true" />
-                    Guardar cambios
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                className={styles.discardButton}
-                disabled={isBusy}
-                onClick={discardChanges}
-              >
-                <FiArrowLeft aria-hidden="true" />
-                Descartar cambios
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-    </main>
-  );
 }

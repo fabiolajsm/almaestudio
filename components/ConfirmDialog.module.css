@@ -1,0 +1,50 @@
+.dialogBackdrop {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgb(0 0 0 / 45%);
+}
+
+.dialog {
+    width: min(100%, 420px);
+    padding: 24px;
+    border: 1px solid var(--color-stone);
+    border-radius: 16px;
+    background: var(--color-cream);
+    color: var(--color-ink);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 20%);
+}
+
+.dialog h2 {
+    margin: 0 0 16px;
+    color: var(--color-ink);
+    font-family: var(--font-seasons);
+    font-size: var(--font-size-medium);
+    line-height: 1.35;
+    text-align: center;
+}
+
+.dialogDescription {
+    margin: 0 0 22px;
+    color: var(--color-brown);
+    font-size: var(--font-size-small);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.dialogActions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+@media (max-width: 600px) {
+    .dialogActions>* {
+        width: 100%;
+        flex: 1;
+    }
+}
