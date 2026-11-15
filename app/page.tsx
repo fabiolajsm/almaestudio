@@ -44,16 +44,16 @@ export default function Home() {
           </span>
           <p className="about-kicker">Creado por Milagro Chacón</p>
           <h1 id="about-heading">
-            BLABLABLA <span>babababba</span>
+            Tu belleza, <span>nuestro momento</span>
           </h1>
           <p className="about-description">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
-            euismod, nisl vel tincidunt lacinia, nunc est aliquam nunc, eget
-            aliquam nisl nunc euismod nunc. Sed euismod, nisl vel tincidunt
-            lacinia, nunc est aliquam nunc, eget aliquam nisl nunc euismod nunc.
+            En Alma Estudio creamos un espacio dedicado al cuidado personal y la
+            belleza. Ofrecemos servicios de uñas, cejas y pestañas, cuidando
+            cada detalle para que disfrutes de una experiencia única y te
+            sientas bien en cada visita.
           </p>
           <a className="about-scroll-link" href="/Appoinments/Create">
-            agenda un turno
+            Tu momento comienza aquí
           </a>
         </div>
         <div className="about-image about-image-right">
@@ -105,8 +105,11 @@ export default function Home() {
               Más información
             </h2>
             <p className="moreInfoDescription">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+              Trabajamos con turnos previos para brindarte una atención
+              personalizada y sin esperas. Nuestro estudio funciona en un
+              departamento, pensado para que te sientas cómoda y como en casa.
+              Ante cualquier consulta, no dudes en escribirnos. ¡Esperamos verte
+              pronto!
             </p>
           </div>
         </header>
@@ -168,7 +171,47 @@ export default function Home() {
             </li>
           </ul>
         </nav>
+
+        <p className="moreInfoDescription">
+          ¿Ya nos visitaste? Nos encantaría conocer tu experiencia: podés
+          dejarnos tu opinión en{" "}
+          <a
+            href="TU_LINK_DE_GOOGLE_FORMS"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="moreInfoLink"
+          >
+            este formulario
+          </a>{" "}
+          o compartir una reseña en{" "}
+          <a
+            href="TU_LINK_DE_GOOGLE_MAPS"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="moreInfoLink"
+          >
+            Google Maps
+          </a>
+          . ¡Tu comentario nos ayuda un montón a seguir creciendo!
+        </p>
       </section>
+
+      <footer className="siteFooter">
+        <p>
+          © {new Date().getFullYear()} Alma Estudio. Todos los derechos
+          reservados.
+        </p>
+        <p className="footerCredit">
+          Página programada por{" "}
+          <a
+            href="https://www.linkedin.com/in/fabiolajsm"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            @fabiolajsm
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }

@@ -318,7 +318,7 @@ a {
   margin-bottom: 20px;
 }
 
-.moreInfoAddress > svg {
+.moreInfoAddress>svg {
   flex: 0 0 auto;
   margin-top: 2px;
   font-size: var(--font-size-medium);
@@ -384,6 +384,35 @@ a {
   color: var(--color-cream);
 }
 
+.moreInfoLink {
+  text-decoration: underline;
+}
+
+.moreInfoLink:hover {
+  opacity: 0.75;
+}
+
+.siteFooter {
+  width: min(100%, 1120px);
+  margin: 40px auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--color-ink);
+  font-size: var(--font-size-small-mobile);
+  font-family: var(--font-poppins);
+}
+
+.footerCredit {
+  color: var(--color-brown);
+}
+
+.footerCredit a {
+  font-weight: 600;
+  font-style: italic;
+  text-decoration: none;
+}
+
 @keyframes sparkle {
 
   0%,
@@ -423,6 +452,7 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .about-image,
   .about-kicker,
   .about-content h1,
