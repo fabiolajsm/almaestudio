@@ -3,9 +3,7 @@
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { FiArrowRight } from "react-icons/fi";
-import {
-  legacyAppointmentServiceNames,
-} from "@/app/Appoinments/appointmentCatalog";
+import { legacyAppointmentServiceNames } from "@/app/Appoinments/appointmentCatalog";
 import Loading from "./Loading";
 import TurnSummary from "./TurnSummary";
 import type { Service } from "./Services";
@@ -144,11 +142,11 @@ export default function SearchAppointment({
       {appointment ? (
         <>
           <div className={styles.heading}>
-            <p className={styles.reservationCode}>
+            <p className={styles.title}>Encontramos tu turno:</p>
+            <h2>
               Turno #{appointment.reservationCode}
               {appointment.customerName && ` · ${appointment.customerName}`}
-            </p>
-            <h2>Encontramos tu turno.</h2>
+            </h2>
           </div>
           <TurnSummary
             services={getSummaryServices(appointment, services)}

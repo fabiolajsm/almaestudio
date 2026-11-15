@@ -54,17 +54,17 @@ export default function CreateAppointmentPage() {
     {
       kicker: "Paso 01",
       title: "¿Qué servicios preferís?",
-      description: "Podés combinar los servicios en un mismo turno.",
+      description: "Podés combinar los servicios en un mismo turno",
     },
     {
       kicker: "Paso 02",
-      title: "Elegí día y horario.",
-      description: "Los horarios deshabilitados ya están ocupados.",
+      title: "Elegí día y horario",
+      description: "Mostramos los turnos disponibles según el día y la duración de los servicios que elegiste",
     },
     {
       kicker: "Paso 03",
       title: "Tus datos de contacto.",
-      description: "Completá tus datos para enviar la solicitud de turno.",
+      description: "Completá tus datos para enviar la solicitud de turno",
     },
   ][currentStep];
 
@@ -110,15 +110,19 @@ export default function CreateAppointmentPage() {
 
           <section className={styles.stepContent} aria-live="polite">
             <p className={styles.stepKicker}>{stepContent.kicker}</p>
-            <h2 className={styles.stepTitle}>{stepContent.title}</h2>
-            <p className={styles.stepDescription}>
-              {isSubmitted ? null : stepContent.description}
-            </p>
-            {settingsError && (
-              <p className={styles.formMessage} role="alert">
-                {settingsError}
-              </p>
-            )}
+            {!isSubmitted ? (
+              <>
+                <h2 className={styles.stepTitle}>{stepContent.title}</h2>
+                <p className={styles.stepDescription}>
+                  {stepContent.description}
+                </p>
+                {settingsError && (
+                  <p className={styles.formMessage} role="alert">
+                    {settingsError}
+                  </p>
+                )}
+              </>
+            ) : null}
 
             {currentStep === 0 &&
               (settings ? (
@@ -181,7 +185,7 @@ export default function CreateAppointmentPage() {
                       </p>
                       <p className={styles.confirmationNote}>
                         En breve vas a recibir un email con el detalle completo
-                        de tu turno.
+                        de tu turno
                       </p>
                     </div>
                     <Link

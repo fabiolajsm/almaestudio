@@ -89,7 +89,7 @@
   margin: 0;
   padding: 0 4px;
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
 }
 
 .list {

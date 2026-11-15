@@ -51,7 +51,7 @@ export default function TurnSummary({
   return (
     <section className={styles.summary} aria-labelledby="turn-summary-title">
       <h2 id="turn-summary-title" className={styles.cardTitle}>
-        Resumen de tu turno
+        Resumen del turno
       </h2>
 
       {services.length === 0 ? (

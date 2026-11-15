@@ -3,7 +3,7 @@
   align-items: center;
   gap: 10px;
   color: var(--color-brown);
-  font: 400 var(--font-size-small-mobile) var(--font-poppins);
+  font: 400 var(--font-size-small) var(--font-poppins);
 }
 
 .inline {

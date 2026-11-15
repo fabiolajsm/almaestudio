@@ -5,7 +5,7 @@ import styles from "./AppointmentHeader.module.css";
 type AppointmentHeaderProps = {
   actionLabel: string;
   title: string;
-  description: string;
+  description?: string;
   backHref?: string;
 };
 
@@ -27,7 +27,9 @@ export default function AppointmentHeader({
           <p className={styles.actionLabel}>{actionLabel}</p>
           <h1 className={styles.title}>{title}</h1>
         </div>
-        <p className={styles.description}>{description}</p>
+        {description && (
+          <p className={styles.description}>{description}</p>
+        )}
       </div>
     </header>
   );

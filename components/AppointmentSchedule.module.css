@@ -184,7 +184,7 @@
 
 .chooseDate,
 .selectedDate {
-  margin: 12px 0 0;
+  margin: 12px 0 12px 0;
   color: var(--color-brown);
   font-size: var(--font-size-small);
 }

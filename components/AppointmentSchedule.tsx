@@ -155,13 +155,18 @@ function CalendarMonth({
   const year = month.getUTCFullYear();
   const monthIndex = month.getUTCMonth();
   const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-  const leadingDays = (new Date(Date.UTC(year, monthIndex, 1)).getUTCDay() + 6) % 7;
+  const leadingDays =
+    (new Date(Date.UTC(year, monthIndex, 1)).getUTCDay() + 6) % 7;
   const days = Array.from({ length: daysInMonth }, (_, index) => index + 1);
 
   return (
     <section className={styles.month} aria-label={getMonthName(month)}>
       <h3 className={styles.monthTitle}>{getMonthName(month)}</h3>
-      <div className={styles.calendarGrid} role="group" aria-label="Días del mes">
+      <div
+        className={styles.calendarGrid}
+        role="group"
+        aria-label="Días del mes"
+      >
         {weekdays.map((weekday) => (
           <span key={weekday} className={styles.weekday}>
             {weekday}
@@ -182,7 +187,9 @@ function CalendarMonth({
             !workingDays.includes(date.getUTCDay()) ||
             isLoading ||
             hasError ||
-            (!timeSlots?.[dateKey]?.some((slot) => slot.status === "available") &&
+            (!timeSlots?.[dateKey]?.some(
+              (slot) => slot.status === "available",
+            ) &&
               !hasShorterServiceAvailability?.[dateKey]);
           const isSelected = dateKey === selectedDate;
 
@@ -274,9 +281,7 @@ export default function AppointmentSchedule({
         ) && Boolean(shorterServiceAvailability?.[selectedDate])
       : !hasAvailabilityForSelectedDuration &&
         hasShorterServiceAvailabilityInRange;
-  const isLoading =
-    serviceDuration > 0 &&
-    currentAvailabilityState === null;
+  const isLoading = serviceDuration > 0 && currentAvailabilityState === null;
   const selectedDateTimeSlots = selectedDate
     ? (availability?.[selectedDate] ?? [])
     : [];
@@ -340,19 +345,18 @@ export default function AppointmentSchedule({
 
         if (
           !isAvailabilityMap(result.timeSlots, serviceDuration, settings) ||
-          !isShorterServiceAvailabilityMap(
-            result.hasShorterServiceAvailability,
-          )
+          !isShorterServiceAvailabilityMap(result.hasShorterServiceAvailability)
         ) {
-          throw new Error("Google Calendar devolvió una disponibilidad inválida.");
+          throw new Error(
+            "Google Calendar devolvió una disponibilidad inválida.",
+          );
         }
 
         setAvailabilityState({
           key: availabilityKey,
           status: "success",
           timeSlots: result.timeSlots,
-          hasShorterServiceAvailability:
-            result.hasShorterServiceAvailability,
+          hasShorterServiceAvailability: result.hasShorterServiceAvailability,
         });
       })
       .catch((error: unknown) => {
@@ -437,25 +441,24 @@ export default function AppointmentSchedule({
         , de{" "}
         {`${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")}`}
         {" a "}
-        {`${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")}`}
-        hs. Los inicios se muestran cada 15 min según la duración del servicio.
-        Solo se muestran horarios disponibles.
+        {`${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")} `}
+        hs.
       </p>
 
       {shouldShowShorterServiceNotice && (
         <p className={styles.chooseDate} role="status">
           Hay turnos disponibles para servicios más cortos, pero no alcanzan
-          para todos los servicios que elegiste. Probá quitando algún servicio
-          o eligiendo otro día.
+          para todos los servicios que elegiste. Probá quitando algún servicio o
+          eligiendo otro día.
         </p>
       )}
 
       <div className={styles.timeHeading}>
         <h3>Horarios</h3>
       </div>
-      {selectedTime && (
+       {formattedSelectedDate && (
         <p className={styles.selectedDate} aria-live="polite">
-          Horario seleccionado: {selectedTime}
+          Día seleccionado: {formattedSelectedDate}
         </p>
       )}
 
@@ -509,8 +512,8 @@ export default function AppointmentSchedule({
             {selectedTime && !selectedTimeIsAvailable && (
               <p className={styles.chooseDate} role="status">
                 {selectedTimeExceedsBusinessHours
-                  ? "Los servicios elegidos son demasiado largos para este horario. Elegí uno más temprano o quitá algún servicio."
-                  : "El horario actual no está disponible para la duración de los servicios elegidos o se superpone con otro turno. Elegí otro horario o quitá algún servicio."}
+                  ? "Los servicios elegidos son demasiado largos para este horario. Elegí uno más temprano y/o modifica algún servicio."
+                  : "El horario actual no está disponible para la duración de los servicios elegidos o se superpone con otro turno. Elegí otro horario y/o modifica algún servicio."}
               </p>
             )}
           </>
@@ -524,9 +527,9 @@ export default function AppointmentSchedule({
               : "Elegí un día para consultar los horarios."}
         </p>
       )}
-      {formattedSelectedDate && (
+      {selectedTime && (
         <p className={styles.selectedDate} aria-live="polite">
-          Día seleccionado: {formattedSelectedDate}
+          Horario seleccionado: {selectedTime} hs
         </p>
       )}
     </section>

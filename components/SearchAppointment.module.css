@@ -15,7 +15,7 @@
   font: 500 clamp(26px, 4vw, 32px)/1.15 var(--font-seasons);
 }
 
-.reservationCode {
+.title {
   margin: 0 0 9px;
   color: var(--color-brown);
   font-size: var(--font-size-small);
