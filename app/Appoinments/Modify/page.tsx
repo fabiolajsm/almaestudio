@@ -3,19 +3,19 @@
 import { useState, useSyncExternalStore } from "react";
 import { FiArrowLeft, FiCheck, FiEdit3 } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
-import AppointmentHeader from "../AppointmentHeader";
+import AppointmentHeader from "../components/AppointmentHeader";
 import SiteHeader from "../../../components/SiteHeader";
-import AppointmentSchedule from "@/components/AppointmentSchedule";
+import AppointmentSchedule from "@/app/Appoinments/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
-import SearchAppointment from "@/components/SearchAppointment";
+import SearchAppointment from "@/app/Appoinments/components/SearchAppointment";
 import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
-} from "@/components/SearchAppointment";
+} from "@/app/Appoinments/components/SearchAppointment";
 import Services from "@/components/Services";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import SuccessState from "../SuccessState";
+import SuccessState from "../components/SuccessState";
 import {
   getArgentinaDateKey,
   getNextAppointmentDate,

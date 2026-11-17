@@ -1,178 +1,248 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { SubmitEvent } from "react";
-import { FiLogOut, FiPlus, FiSave, FiTrash2 } from "react-icons/fi";
-import type {
-  AppointmentSettings,
-  AppointmentService,
-} from "@/app/Appoinments/appointmentCatalog";
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { FiLogOut, FiSave } from "react-icons/fi";
+import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
 import Loading from "@/components/Loading";
 import { isAppointmentSettings } from "@/components/useAppointmentSettings";
+import AppointmentHeader from "../Appoinments/components/AppointmentHeader";
 import styles from "./page.module.css";
+import { IoIosArrowDropdownCircle } from "react-icons/io";
 
-const weekdays = [
-  { value: 1, label: "Lunes" },
-  { value: 2, label: "Martes" },
-  { value: 3, label: "Miércoles" },
-  { value: 4, label: "Jueves" },
-  { value: 5, label: "Viernes" },
-  { value: 6, label: "Sábado" },
-  { value: 0, label: "Domingo" },
-];
+import type {
+  AdminSection,
+  DailyScheduleMap,
+  ExtendedAppointmentSettings,
+  AdminDashboardProps,
+} from "./types";
 
-function formatTime(minutes: number) {
-  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+import ServicesEditor from "./components/ServicesEditor";
+import ScheduleEditor from "./components/ScheduleEditor";
+import SocialEditor from "./components/SocialEditor";
+import LocationEditor from "./components/LocationEditor";
+import { WEEKDAYS, SECTION_OPTIONS } from "./constants";
+
+function normalizeSettings(
+  raw: AppointmentSettings,
+): ExtendedAppointmentSettings {
+  const extended = raw as ExtendedAppointmentSettings;
+
+  const dailySchedule: DailyScheduleMap = {};
+  for (const { value } of WEEKDAYS) {
+    const existing = extended.dailySchedule?.[value];
+    dailySchedule[value] = {
+      enabled: existing ? existing.enabled : raw.workingDays.includes(value),
+      openingTime: existing?.openingTime ?? raw.openingTime ?? 540,
+      closingTime: existing?.closingTime ?? raw.closingTime ?? 1080,
+    };
+  }
+
+  return {
+    ...extended,
+    dailySchedule,
+    social: {
+      instagram: extended.social?.instagram ?? "",
+      whatsapp: extended.social?.whatsapp ?? "",
+      tiktok: extended.social?.tiktok ?? "",
+    },
+    location: {
+      address: extended.location?.address ?? "",
+      city: extended.location?.city ?? "",
+      province: extended.location?.province ?? "",
+      postalCode: extended.location?.postalCode ?? "",
+      mapsUrl: extended.location?.mapsUrl ?? "",
+      notes: extended.location?.notes ?? "",
+    },
+  };
 }
 
-function parseTime(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
-}
-
-export default function AdminDashboard() {
-  const [password, setPassword] = useState("");
-  const [settings, setSettings] = useState<AppointmentSettings | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
+export default function AdminDashboard({
+  initialSettings,
+  onSignedOut,
+}: AdminDashboardProps) {
+  const [savedSettings, setSavedSettings] =
+    useState<ExtendedAppointmentSettings>(() =>
+      normalizeSettings(initialSettings),
+    );
+  const [settings, setSettings] =
+    useState<ExtendedAppointmentSettings>(savedSettings);
+  const [activeSection, setActiveSection] = useState<AdminSection>("services");
   const [isLoading, setIsLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    const controller = new AbortController();
-
-    fetch("/api/admin/settings", {
-      cache: "no-store",
-      signal: controller.signal,
-    })
-      .then(async (response) => {
-        const result: unknown = await response.json();
-        if (response.status === 401) {
-          setIsAuthenticated(false);
-          return;
-        }
-
-        if (!response.ok || !isAppointmentSettings(result)) {
-          const errorMessage =
-            result &&
-            typeof result === "object" &&
-            typeof (result as Record<string, unknown>).error === "string"
-              ? (result as Record<string, string>).error
-              : "No se pudo cargar la configuración del panel.";
-          throw new Error(errorMessage);
-        }
-
-        setSettings(result);
-        setIsAuthenticated(true);
-      })
-      .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
-          return;
-        }
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "No se pudo conectar con el panel.",
-        );
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) {
-          setIsCheckingSession(false);
-        }
-      });
-
-    return () => controller.abort();
-  }, []);
-
-  async function loadSettings() {
+  function updateSettings(partial: Partial<ExtendedAppointmentSettings>) {
+    setSettings((current) => ({ ...current, ...partial }));
     setMessage("");
-    try {
-      const response = await fetch("/api/admin/settings", {
-        cache: "no-store",
-      });
-      const result: unknown = await response.json();
-      if (response.status === 401) {
-        setIsAuthenticated(false);
-        setSettings(null);
-        throw new Error("La sesión venció. Volvé a ingresar.");
-      }
-
-      if (!response.ok || !isAppointmentSettings(result)) {
-        const errorMessage =
-          result &&
-          typeof result === "object" &&
-          typeof (result as Record<string, unknown>).error === "string"
-            ? (result as Record<string, string>).error
-            : "No se pudo cargar la configuración del panel.";
-        throw new Error(errorMessage);
-      }
-
-      setSettings(result);
-      return true;
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "No se pudo cargar la configuración del panel.",
-      );
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
   }
 
-  async function signIn(event: SubmitEvent<HTMLFormElement>) {
+  return (
+    <main className={styles.adminPage}>
+      <AppointmentHeader
+        actionLabel="Alma Estudio"
+        title="Panel de administración"
+        description={
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => void signOut()}
+            disabled={isLoading}
+          >
+            {isSigningOut ? (
+              <Loading label="Cerrando sesión..." inline />
+            ) : (
+              <>
+                <FiLogOut aria-hidden="true" />
+                Cerrar sesión
+              </>
+            )}
+          </button>
+        }
+        showBackButton={false}
+      />
+
+      {message && (
+        <p className={styles.message} role="status">
+          {message}
+        </p>
+      )}
+
+      <form className={styles.settingsForm} onSubmit={saveSettings}>
+        <section className={styles.selectedOption}>
+          <label htmlFor="section-selector">¿Qué querés modificar?</label>
+
+          <div className={styles.selectWrapper}>
+            <select
+              id="section-selector"
+              value={activeSection}
+              onChange={(event) => {
+                setActiveSection(event.currentTarget.value as AdminSection);
+                setMessage("");
+              }}
+            >
+              {SECTION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <IoIosArrowDropdownCircle
+              className={styles.selectIcon}
+              aria-hidden="true"
+            />
+          </div>
+        </section>
+
+        {activeSection === "services" && (
+          <ServicesEditor
+            categories={settings.categories}
+            services={settings.services}
+            onChange={(categories, services) =>
+              updateSettings({ categories, services })
+            }
+          />
+        )}
+
+        {activeSection === "schedule" && (
+          <ScheduleEditor
+            dailySchedule={settings.dailySchedule}
+            defaultOpening={settings.openingTime}
+            defaultClosing={settings.closingTime}
+            onChange={(dailySchedule, workingDays) =>
+              updateSettings({ dailySchedule, workingDays })
+            }
+          />
+        )}
+
+        {activeSection === "social" && (
+          <SocialEditor
+            social={settings.social}
+            onChange={(social) => updateSettings({ social })}
+          />
+        )}
+
+        {activeSection === "location" && (
+          <LocationEditor
+            location={settings.location}
+            onChange={(location) => updateSettings({ location })}
+          />
+        )}
+
+        <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={isLoading}
+            style={{ flex: 1 }}
+          >
+            {isLoading ? (
+              <Loading label="Guardando..." inline />
+            ) : (
+              <>
+                <FiSave aria-hidden="true" />
+                Guardar cambios
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={discardChanges}
+            disabled={isLoading}
+            style={{ padding: "0 1.5rem" }}
+          >
+            Descartar cambios
+          </button>
+        </div>
+      </form>
+    </main>
+  );
+
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
     setMessage("");
 
-    try {
-      const response = await fetch("/api/admin/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      const result = (await response.json()) as { error?: unknown };
+    const scheduleEntries = Object.entries(settings.dailySchedule ?? {});
+    const enabledDays = scheduleEntries
+      .filter(([, value]) => value.enabled)
+      .map(([day]) => Number(day))
+      .sort((a, b) => a - b);
 
-      if (!response.ok) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : "No se pudo iniciar sesión.",
-        );
-      }
+    const enabledSchedules = scheduleEntries
+      .filter(([, value]) => value.enabled)
+      .map(([, value]) => value);
 
-      setPassword("");
-      setIsAuthenticated(await loadSettings());
-    } catch (error) {
-      setMessage(
-        error instanceof Error ? error.message : "No se pudo iniciar sesión.",
-      );
-      setIsLoading(false);
-    }
-  }
+    const fallbackOpening =
+      enabledSchedules.length > 0
+        ? Math.min(...enabledSchedules.map((s) => s.openingTime))
+        : settings.openingTime;
 
-  async function saveSettings(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!settings) {
-      return;
-    }
+    const fallbackClosing =
+      enabledSchedules.length > 0
+        ? Math.max(...enabledSchedules.map((s) => s.closingTime))
+        : settings.closingTime;
 
-    setIsLoading(true);
-    setMessage("");
+    const payload: ExtendedAppointmentSettings = {
+      ...settings,
+      workingDays: enabledDays,
+      openingTime: fallbackOpening,
+      closingTime: fallbackClosing,
+    };
+
     try {
       const response = await fetch("/api/admin/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(payload),
       });
       const result: unknown = await response.json();
 
       if (!response.ok || !isAppointmentSettings(result)) {
         if (response.status === 401) {
-          setIsAuthenticated(false);
-          setSettings(null);
+          onSignedOut("La sesión venció. Volvé a ingresar.");
+          return;
         }
         const errorMessage =
           result &&
@@ -183,8 +253,10 @@ export default function AdminDashboard() {
         throw new Error(errorMessage);
       }
 
-      setSettings(result);
-      setMessage("Los servicios y horarios se guardaron correctamente.");
+      const normalized = normalizeSettings(result);
+      setSavedSettings(normalized);
+      setSettings(normalized);
+      setMessage("Los cambios se guardaron correctamente.");
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -196,10 +268,18 @@ export default function AdminDashboard() {
     }
   }
 
+  function discardChanges() {
+    if (window.confirm("¿Querés descartar los cambios no guardados?")) {
+      setSettings(savedSettings);
+      setMessage("Se descartaron los cambios.");
+    }
+  }
+
   async function signOut() {
     setIsLoading(true);
     setIsSigningOut(true);
     setMessage("");
+
     try {
       const response = await fetch("/api/admin/session", {
         method: "DELETE",
@@ -208,393 +288,13 @@ export default function AdminDashboard() {
         throw new Error("No se pudo cerrar la sesión.");
       }
 
-      setIsAuthenticated(false);
-      setSettings(null);
+      onSignedOut();
     } catch (error) {
       setMessage(
         error instanceof Error ? error.message : "No se pudo cerrar la sesión.",
       );
-    } finally {
       setIsLoading(false);
       setIsSigningOut(false);
     }
   }
-
-  function updateService(
-    serviceId: string,
-    changes: Partial<AppointmentService>,
-  ) {
-    setSettings((current) =>
-      current
-        ? {
-            ...current,
-            services: current.services.map((service) =>
-              service.id === serviceId ? { ...service, ...changes } : service,
-            ),
-          }
-        : current,
-    );
-    setMessage("");
-  }
-
-  function updateCategoryName(categoryId: string, name: string) {
-    setSettings((current) =>
-      current
-        ? {
-            ...current,
-            categories: current.categories.map((category) =>
-              category.id === categoryId ? { ...category, name } : category,
-            ),
-          }
-        : current,
-    );
-    setMessage("");
-  }
-
-  function addService(categoryId: string) {
-    if (!settings || settings.services.length >= 100) {
-      return;
-    }
-
-    setSettings((current) =>
-      current
-        ? {
-            ...current,
-            services: [
-              ...current.services,
-              {
-                id: crypto.randomUUID(),
-                name: "Nuevo servicio",
-                description: "",
-                category: categoryId,
-                duration: 60,
-                price: 0,
-              },
-            ],
-          }
-        : current,
-    );
-    setMessage("");
-  }
-
-  function removeService(serviceId: string) {
-    if (!settings) {
-      return;
-    }
-
-    const service = settings.services.find((item) => item.id === serviceId);
-    if (
-      !service ||
-      settings.services.length <= 1 ||
-      !window.confirm(`¿Querés eliminar el servicio «${service.name}»?`)
-    ) {
-      return;
-    }
-
-    setSettings((current) =>
-      current
-        ? {
-            ...current,
-            services: current.services.filter((item) => item.id !== serviceId),
-          }
-        : current,
-    );
-    setMessage("");
-  }
-
-  function updateWorkingDay(day: number, isWorking: boolean) {
-    setSettings((current) => {
-      if (!current) {
-        return current;
-      }
-
-      const workingDays = isWorking
-        ? [...current.workingDays, day]
-        : current.workingDays.filter((workingDay) => workingDay !== day);
-      return {
-        ...current,
-        workingDays: workingDays.sort((a, b) => a - b),
-      };
-    });
-    setMessage("");
-  }
-
-  if (isCheckingSession) {
-    return (
-      <main className={styles.page}>
-        <Loading label="Verificando acceso..." />
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <main className={styles.page}>
-        <section className={styles.loginCard} aria-labelledby="admin-title">
-          <p className={styles.eyebrow}>Alma Estudio</p>
-          <h1 id="admin-title">Administración</h1>
-          <p className={styles.intro}>
-            Ingresá para editar los servicios y el horario de atención.
-          </p>
-          <form className={styles.loginForm} onSubmit={signIn}>
-            <label htmlFor="admin-password">Contraseña de administradora</label>
-            <input
-              id="admin-password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(event) => setPassword(event.currentTarget.value)}
-              required
-            />
-            <button type="submit" disabled={isLoading || !password}>
-              {isLoading ? (
-                <Loading label="Ingresando..." inline />
-              ) : (
-                "Ingresar"
-              )}
-            </button>
-          </form>
-          {message && (
-            <p className={styles.message} role="alert">
-              {message}
-            </p>
-          )}
-        </section>
-      </main>
-    );
-  }
-
-  return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Alma Estudio</p>
-          <h1>Servicios y horarios</h1>
-          <p className={styles.intro}>
-            Editá los servicios ofrecidos, los días y el horario de atención.
-          </p>
-        </div>
-        <button
-          type="button"
-          className={styles.secondaryButton}
-          onClick={() => void signOut()}
-          disabled={isLoading}
-        >
-          {isSigningOut ? (
-            <Loading label="Cerrando sesión..." inline />
-          ) : (
-            <>
-              <FiLogOut aria-hidden="true" />
-              Salir
-            </>
-          )}
-        </button>
-      </header>
-
-      {message && (
-        <p className={styles.message} role="status">
-          {message}
-        </p>
-      )}
-
-      {!settings ? (
-        <div className={styles.emptyState}>
-          <Loading label="Cargando configuración..." />
-        </div>
-      ) : (
-        <form className={styles.settingsForm} onSubmit={saveSettings}>
-          <section className={styles.settingsSection}>
-            <h2>Horario de atención</h2>
-            <div className={styles.hoursGrid}>
-              <label>
-                Apertura
-                <input
-                  type="time"
-                  step={900}
-                  value={formatTime(settings.openingTime)}
-                  onChange={(event) => {
-                    setSettings((current) =>
-                      current
-                        ? {
-                            ...current,
-                            openingTime: parseTime(event.currentTarget.value),
-                          }
-                        : current,
-                    );
-                    setMessage("");
-                  }}
-                  required
-                />
-              </label>
-              <label>
-                Cierre
-                <input
-                  type="time"
-                  step={900}
-                  value={formatTime(settings.closingTime)}
-                  onChange={(event) => {
-                    setSettings((current) =>
-                      current
-                        ? {
-                            ...current,
-                            closingTime: parseTime(event.currentTarget.value),
-                          }
-                        : current,
-                    );
-                    setMessage("");
-                  }}
-                  required
-                />
-              </label>
-            </div>
-          </section>
-
-          <section className={styles.settingsSection}>
-            <h2>Días de trabajo</h2>
-            <div className={styles.daysGrid}>
-              {weekdays.map(({ value, label }) => (
-                <label key={value}>
-                  <input
-                    type="checkbox"
-                    checked={settings.workingDays.includes(value)}
-                    onChange={(event) =>
-                      updateWorkingDay(value, event.currentTarget.checked)
-                    }
-                  />
-                  {label}
-                </label>
-              ))}
-            </div>
-          </section>
-
-          <section className={styles.settingsSection}>
-            <h2>Servicios</h2>
-            <p className={styles.intro}>
-              Editá las categorías y los servicios que se ofrecen.
-            </p>
-            {settings.categories.map((category) => (
-              <fieldset key={category.id} className={styles.serviceCategory}>
-                <legend>{category.name}</legend>
-                <div className={styles.categoryEditorHeader}>
-                  <label className={styles.categoryNameField}>
-                    Nombre de categoría
-                    <input
-                      type="text"
-                      value={category.name}
-                      maxLength={60}
-                      onChange={(event) =>
-                        updateCategoryName(
-                          category.id,
-                          event.currentTarget.value,
-                        )
-                      }
-                      required
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    className={styles.addServiceButton}
-                    disabled={settings.services.length >= 100}
-                    onClick={() => addService(category.id)}
-                  >
-                    <FiPlus aria-hidden="true" />
-                    Agregar servicio
-                  </button>
-                </div>
-                <div className={styles.serviceGrid}>
-                  {settings.services
-                    .filter((service) => service.category === category.id)
-                    .map((service) => (
-                      <article key={service.id} className={styles.serviceCard}>
-                        <label>
-                          Nombre
-                          <input
-                            type="text"
-                            value={service.name}
-                            maxLength={100}
-                            onChange={(event) =>
-                              updateService(service.id, {
-                                name: event.currentTarget.value,
-                              })
-                            }
-                            required
-                          />
-                        </label>
-                        <label>
-                          Descripción
-                          <textarea
-                            value={service.description ?? ""}
-                            maxLength={240}
-                            rows={3}
-                            onChange={(event) =>
-                              updateService(service.id, {
-                                description: event.currentTarget.value,
-                              })
-                            }
-                          />
-                        </label>
-                        <div className={styles.serviceNumbers}>
-                          <label>
-                            Duración (min)
-                            <input
-                              type="number"
-                              min={15}
-                              max={600}
-                              step={15}
-                              value={service.duration}
-                              onChange={(event) =>
-                                updateService(service.id, {
-                                  duration: Number(event.currentTarget.value),
-                                })
-                              }
-                              required
-                            />
-                          </label>
-                          <label>
-                            Precio ($)
-                            <input
-                              type="number"
-                              min={0}
-                              max={10_000_000}
-                              step={500}
-                              value={service.price}
-                              onChange={(event) =>
-                                updateService(service.id, {
-                                  price: Number(event.currentTarget.value),
-                                })
-                              }
-                              required
-                            />
-                          </label>
-                        </div>
-                        <button
-                          type="button"
-                          className={styles.removeServiceButton}
-                          disabled={settings.services.length <= 1}
-                          onClick={() => removeService(service.id)}
-                        >
-                          <FiTrash2 aria-hidden="true" />
-                          Eliminar servicio
-                        </button>
-                      </article>
-                    ))}
-                </div>
-              </fieldset>
-            ))}
-          </section>
-
-          <button type="submit" className={styles.saveButton} disabled={isLoading}>
-            {isLoading ? (
-              <Loading label="Guardando..." inline />
-            ) : (
-              <>
-                <FiSave aria-hidden="true" />
-                Guardar cambios
-              </>
-            )}
-          </button>
-        </form>
-      )}
-    </main>
-  );
 }

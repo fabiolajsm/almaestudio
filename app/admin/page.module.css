@@ -1,4 +1,4 @@
-.page {
+.adminPage {
   width: min(100% - 32px, 960px);
   margin: 0 auto;
   padding: clamp(32px, 7vw, 72px) 0;
@@ -17,34 +17,34 @@
 .eyebrow {
   margin: 0 0 8px;
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   font-weight: 600;
-  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-.header h1,
 .loginCard h1 {
   margin: 0;
-  font: 500 clamp(36px, 7vw, 52px) var(--font-seasons);
+  font: 500 var(--font-size-large) var(--font-seasons);
   letter-spacing: -1px;
 }
 
-.intro {
-  margin: 8px 0 0;
+.loginCard p {
   color: var(--color-brown);
   font-size: var(--font-size-small);
+  margin-top: 10px;
   line-height: 1.6;
 }
 
 .loginForm {
-  display: grid;
-  gap: 12px;
-  margin-top: 28px;
+  display: flex;
+  margin-top: 10px;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .loginForm label {
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
+  font-family: var(--font-poppins);
   font-weight: 600;
 }
 
@@ -59,90 +59,74 @@
   font: inherit;
 }
 
-.loginForm input:focus-visible,
-.loginForm button:focus-visible,
-.secondaryButton:focus-visible,
-.filters button:focus-visible,
-.cardActions button:focus-visible {
-  outline: 2px solid var(--color-brown);
-  outline-offset: 3px;
-}
-
-.loginForm button,
-.confirmButton,
-.cancelButton,
-.secondaryButton {
-  display: inline-flex;
-  min-height: 42px;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 9px 14px;
-  border: 1px solid var(--color-ink);
-  border-radius: 10px;
-  cursor: pointer;
-  font: 500 var(--font-size-small-mobile) var(--font-poppins);
-}
-
-.loginForm button,
-.confirmButton {
-  background: var(--color-ink);
-  color: white;
-}
-
-.loginForm button:disabled,
-.cardActions button:disabled,
-.secondaryButton:disabled {
-  cursor: wait;
-  opacity: 0.65;
-}
-
 .message {
   margin: 18px 0 0;
-  color: #8d342d;
-  font-size: var(--font-size-small-mobile);
+  color: var(--color-danger);
+  font-size: var(--font-size-small);
   line-height: 1.5;
 }
 
-.header {
+.selectedOption {
   display: flex;
+  flex-direction: row;
+  justify-content: center;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
+  gap: 10px;
 }
 
-.headerActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.secondaryButton {
-  border-color: var(--color-stone);
-  background: transparent;
+.selectedOption label {
   color: var(--color-ink);
+  font-size: var(--font-size-medium);
+  font-family: var(--font-seasons);
 }
 
-.settingsForm {
-  display: grid;
-  gap: 20px;
-  margin-top: 32px;
+.selectWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
 }
 
-.settingsSection {
-  display: grid;
-  gap: 18px;
-  padding: clamp(18px, 3vw, 28px);
-  border: 1px solid var(--color-stone);
-  border-radius: 16px;
-  background: color-mix(white 80%, transparent);
+.selectedOption select {
+  appearance: none;
+  min-width: 17rem;
+  padding: 0.65rem 2.6rem 0.65rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid #d6cec2;
+  background-color: #fbf9f5;
+  color: var(--color-ink);
+  font: var(--font-size-small) var(--font-poppins);
+  cursor: pointer;
 }
 
-.settingsSection h2 {
-  margin: 0;
-  font-size: var(--font-size-medium-mobile);
-  font-weight: 600;
+.selectedOption select:focus {
+  outline: none;
+  border-color: var(--color-brown);
 }
+
+.selectIcon {
+  position: absolute;
+  right: 0.85rem;
+  font-size: 1.25rem;
+  color: var(--color-ink);
+  pointer-events: none;
+}
+
+
+.optionSelectedTitle {
+  margin: 20px 0 0 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-medium);
+  font-family: var(--font-seasons);
+}
+
+.optionSelectedDescription {
+  margin: 0 0 20px 0;
+  color: var(--color-ink);
+  font-size: var(--font-size-small);
+  font-family: var(--font-poppins);
+  line-height: 1.5;
+}
+
 
 .hoursGrid,
 .serviceNumbers {
@@ -446,7 +430,10 @@
   text-align: center;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 600px) {
+.selectedOption {
+    flex-direction: column;
+  }
   .header {
     align-items: flex-start;
     flex-direction: column;

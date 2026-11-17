@@ -202,7 +202,7 @@ export default function Home() {
           reservados.
         </p>
         <p className="footerCredit">
-          Página programada por{" "}
+          website hecha por{" "}
           <a
             href="https://www.linkedin.com/in/fabiolajsm"
             target="_blank"

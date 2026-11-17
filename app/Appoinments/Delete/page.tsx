@@ -4,16 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { FiX } from "react-icons/fi";
 import { FaRegCalendarTimes } from "react-icons/fa";
-import AppointmentHeader from "../AppointmentHeader";
+import AppointmentHeader from "../components/AppointmentHeader";
 import SiteHeader from "../../../components/SiteHeader";
-import SearchAppointment from "@/components/SearchAppointment";
+import SearchAppointment from "@/app/Appoinments/components/SearchAppointment";
 import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
-} from "@/components/SearchAppointment";
+} from "@/app/Appoinments/components/SearchAppointment";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import SuccessState from "../SuccessState";
+import SuccessState from "../components/SuccessState";
 import styles from "./page.module.css";
 import { ERROR_MESSAGES } from "@/app/constants";
 

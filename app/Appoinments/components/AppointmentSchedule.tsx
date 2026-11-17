@@ -6,7 +6,7 @@ import {
   type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
 import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
-import Loading from "./Loading";
+import Loading from "../../../components/Loading";
 import styles from "./AppointmentSchedule.module.css";
 
 type AppointmentScheduleProps = {

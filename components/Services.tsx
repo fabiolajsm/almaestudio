@@ -17,6 +17,7 @@ type ServicesProps = {
   services: AppointmentService[];
   selectedServiceIds: string[];
   onToggleService: (serviceId: string) => void;
+  hasToShowCount?: boolean;
 };
 
 export default function Services({
@@ -24,6 +25,7 @@ export default function Services({
   services,
   selectedServiceIds,
   onToggleService,
+  hasToShowCount = true,
 }: ServicesProps) {
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const selectedCount = selectedServiceIds.length;
@@ -127,9 +129,11 @@ export default function Services({
         })}
       </div>
 
-      <p className={styles.selectionCount} aria-live="polite">
-        {selectionLabel}
-      </p>
+      {hasToShowCount && (
+        <p className={styles.selectionCount} aria-live="polite">
+          {selectionLabel}
+        </p>
+      )}
     </section>
   );
 }

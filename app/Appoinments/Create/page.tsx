@@ -6,13 +6,13 @@ import { getArgentinaDateKey } from "../appointmentDates";
 import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
 
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
-import AppointmentHeader from "../AppointmentHeader";
-import SuccessState from "../SuccessState";
+import AppointmentHeader from "../components/AppointmentHeader";
+import SuccessState from "../components/SuccessState";
 import SiteHeader from "../../../components/SiteHeader";
-import AppointmentSchedule from "@/components/AppointmentSchedule";
+import AppointmentSchedule from "@/app/Appoinments/components/AppointmentSchedule";
 import Loading from "@/components/Loading";
 import Services from "@/components/Services";
-import TurnSummary from "@/components/TurnSummary";
+import TurnSummary from "@/app/Appoinments/components/TurnSummary";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
 import { CREATE_STEPS } from "@/app/constants";
 

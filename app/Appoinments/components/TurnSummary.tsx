@@ -1,5 +1,5 @@
 import { FiCalendar } from "react-icons/fi";
-import type { Service } from "./Services";
+import type { Service } from "../../../components/Services";
 import styles from "./TurnSummary.module.css";
 
 type TurnSummaryProps = {

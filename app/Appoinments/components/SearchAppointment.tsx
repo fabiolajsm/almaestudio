@@ -4,9 +4,9 @@ import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { FiArrowRight } from "react-icons/fi";
 import { legacyAppointmentServiceNames } from "@/app/Appoinments/appointmentCatalog";
-import Loading from "./Loading";
+import Loading from "../../../components/Loading";
 import TurnSummary from "./TurnSummary";
-import type { Service } from "./Services";
+import type { Service } from "../../../components/Services";
 import styles from "./SearchAppointment.module.css";
 import { ERROR_MESSAGES } from "@/app/constants";
 
