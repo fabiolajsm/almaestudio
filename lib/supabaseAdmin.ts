@@ -1,5 +1,5 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
-import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import type { ExtendedAppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
 
 export type AdminAppointmentReservation = {
   id: string;
@@ -81,7 +81,8 @@ export async function getAppointmentSettingsRecord(): Promise<unknown | null> {
     Authorization: "Bearer " + serviceRoleKey,
   };
   const hoursQuery = new URLSearchParams({
-    select: "opening_time,closing_time,working_days",
+    select:
+      "opening_time,closing_time,working_days,daily_schedule,social,location",
     id: "eq.default",
     limit: "1",
   });
@@ -148,6 +149,9 @@ export async function getAppointmentSettingsRecord(): Promise<unknown | null> {
       opening_time: string;
       closing_time: string;
       working_days: number[];
+      daily_schedule: unknown;
+      social: unknown;
+      location: unknown;
     }>
   )[0];
   const services = (await servicesResponse.json()) as Array<{
@@ -190,6 +194,9 @@ export async function getAppointmentSettingsRecord(): Promise<unknown | null> {
     openingTime: parseDatabaseTime(hours.opening_time),
     closingTime: parseDatabaseTime(hours.closing_time),
     workingDays: hours.working_days,
+    dailySchedule: hours.daily_schedule,
+    social: hours.social,
+    location: hours.location,
   };
 }
 
@@ -198,7 +205,7 @@ function formatDatabaseTime(minutes: number) {
 }
 
 export async function saveAppointmentSettingsRecord(
-  settings: AppointmentSettings,
+  settings: ExtendedAppointmentSettings,
 ) {
   const result = await callSupabaseRpc<boolean>("save_appointment_settings", {
     p_categories: settings.categories,
@@ -206,6 +213,9 @@ export async function saveAppointmentSettingsRecord(
     p_opening_time: formatDatabaseTime(settings.openingTime),
     p_closing_time: formatDatabaseTime(settings.closingTime),
     p_working_days: settings.workingDays,
+    p_daily_schedule: settings.dailySchedule,
+    p_social: settings.social,
+    p_location: settings.location,
   });
   if (result !== true) {
     throw new Error("Supabase no confirmó los cambios de configuración.");

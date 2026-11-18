@@ -2,13 +2,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(240px, 280px);
   align-items: start;
-  gap: 32px;
+  gap: var(--space-5);
   width: min(100%, 1200px);
   margin: 0 auto;
-  padding: clamp(20px, 3.5vw, 36px);
-  border: 1px solid var(--color-stone);
-  border-radius: 20px;
-  background: color-mix(in srgb, white 80%, transparent);
 }
 
 .workflow {
@@ -18,8 +14,8 @@
 .stepper {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 32px;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-5);
   padding: 0;
   list-style: none;
 }
@@ -28,7 +24,7 @@
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   color: var(--color-brown);
   font-size: var(--font-size-small);
   white-space: nowrap;
@@ -37,7 +33,7 @@
 .step button {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-2);
   padding: 0;
   border: 0;
   background: transparent;
@@ -63,8 +59,8 @@
   width: 30px;
   height: 30px;
   flex: 0 0 auto;
-  border: 1px solid var(--color-stone);
-  border-radius: 50%;
+  border: var(--border-width) solid var(--color-stone);
+  border-radius: var(--radius-circle);
   color: var(--color-brown);
   font-size: var(--font-size-small-mobile);
 }
@@ -87,7 +83,7 @@
 }
 
 .stepKicker {
-  margin: 0 0 6px;
+  margin: 0 0 var(--space-1);
   color: var(--color-brown);
   font-size: var(--font-size-small);
   font-weight: 650;
@@ -102,7 +98,7 @@
 }
 
 .stepDescription {
-  margin: 8px 0 22px;
+  margin: var(--space-1) 0 var(--space-4);
   color: var(--color-brown);
   font-size: var(--font-size-small);
   line-height: 1.6;
@@ -110,13 +106,13 @@
 
 .contactForm {
   display: grid;
-  gap: 16px;
+  gap: var(--space-3);
   max-width: 620px;
 }
 
 .contactForm label {
   display: grid;
-  gap: 10px;
+  gap: var(--space-2);
   color: var(--color-ink);
   font-size: var(--font-size-small);
   font-weight: 600;
@@ -125,9 +121,9 @@
 .contactForm input {
   width: 100%;
   min-height: 44px;
-  padding: 10px 13px;
-  border: 1px solid var(--color-stone);
-  border-radius: 11px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--color-stone);
+  border-radius: var(--radius-control);
   background: color-mix(in srgb, var(--color-cream) 50%, transparent);
   color: var(--color-ink);
   font: 400 var(--font-size-small) var(--font-poppins);
@@ -138,11 +134,11 @@
 }
 
 .contactForm input[aria-invalid="true"] {
-  border-color: #8a2f2f;
+  border-color: var(--color-danger);
 }
 
 .fieldError {
-  color: #8a2f2f;
+  color: var(--color-danger);
   font-size: var(--font-size-small);
   font-weight: 400;
 }
@@ -154,7 +150,7 @@
 
 .contactStep {
   display: grid;
-  gap: 20px;
+  gap: var(--space-4);
 }
 
 .homeButton {
@@ -164,19 +160,19 @@
 .stepActions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 28px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 .formMessage {
-  margin: 14px 0 0;
+  margin: var(--space-3) 0 0;
   color: var(--color-brown);
   font-size: var(--font-size-small-mobile);
   line-height: 1.5;
 }
 
 .formMessage[role="alert"] {
-  color: #8a2f2f;
+  color: var(--color-danger);
 }
 
 @media (max-width: 1024px) {
@@ -188,13 +184,12 @@
 @media (max-width: 760px) {
   .bookingPanel {
     grid-template-columns: minmax(0, 1fr);
-    gap: 26px;
-    padding: 20px;
+    gap: var(--space-4);
   }
 
   .stepper {
-    gap: 8px;
-    margin-bottom: 26px;
+    gap: var(--space-1);
+    margin-bottom: var(--space-4);
     flex-wrap: wrap;
   }
 

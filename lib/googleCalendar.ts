@@ -2,6 +2,7 @@ import { createHash, createSign } from "node:crypto";
 import {
   appointmentBufferMinutes,
   defaultAppointmentSettings,
+  getAppointmentScheduleForDate,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
   type AppointmentSettings,
@@ -488,13 +489,16 @@ function getAppointmentTimeSlots(
   busyIntervals: BusyInterval[],
   settings: AppointmentSettings,
 ): AppointmentTimeSlot[] {
+  const schedule = getAppointmentScheduleForDate(dateKey, settings);
+  if (!schedule) return [];
+
   const openingTime = getLocalDateTime(
     dateKey,
-    `${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")}`,
+    `${String(Math.floor(schedule.openingTime / 60)).padStart(2, "0")}:${String(schedule.openingTime % 60).padStart(2, "0")}`,
   ).getTime();
   const closingTime = getLocalDateTime(
     dateKey,
-    `${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")}`,
+    `${String(Math.floor(schedule.closingTime / 60)).padStart(2, "0")}:${String(schedule.closingTime % 60).padStart(2, "0")}`,
   ).getTime();
   const now = Date.now();
   const firstFutureStart =
@@ -656,7 +660,12 @@ export async function isAppointmentSlotAvailable(
 
   if (
     !isAppointmentWorkingDay(date, settings) ||
-    !isAppointmentTimeWithinBusinessHours(time, durationMinutes, settings)
+    !isAppointmentTimeWithinBusinessHours(
+      time,
+      durationMinutes,
+      settings,
+      date,
+    )
   ) {
     return false;
   }

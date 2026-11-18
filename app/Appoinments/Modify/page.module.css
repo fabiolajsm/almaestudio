@@ -1,11 +1,9 @@
 .modifyContainer {
-  gap: 32px;
+  display: grid;
+  gap: var(--space-4);
   width: min(100%, 1200px);
   margin: 0 auto;
-  padding: clamp(20px, 3.5vw, 36px);
-  border: 1px solid var(--color-stone);
-  border-radius: 20px;
-  background: color-mix(in srgb, white 80%, transparent);
+  color: var(--color-ink);
 }
 
 .modifyTitle {
@@ -19,9 +17,7 @@
 }
 
 .editorSectionText {
-  margin-bottom: 15px;
-  margin-top: 15px;
-
+  margin: var(--space-3) 0;
   font-size: var(--font-size-small);
   font-family: var(--font-poppins);
   font-weight: 600;
@@ -32,14 +28,14 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-start;
-  gap: 10px;
-  margin-top: 20px;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
 @media (max-width: 600px) {
   .modifyTitle {
     font-size: var(--font-size-medium);
-    margin-bottom: 10px;
+    margin-bottom: var(--space-2);
   }
 
   .buttonGroup {

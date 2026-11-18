@@ -4,9 +4,17 @@ create table if not exists public.appointment_business_hours (
   closing_time time not null,
   working_days smallint[] not null
     check (cardinality(working_days) between 1 and 7),
+  daily_schedule jsonb not null default '{}'::jsonb,
+  social jsonb not null default '{}'::jsonb,
+  location jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now(),
   check (opening_time < closing_time)
 );
+
+alter table public.appointment_business_hours
+  add column if not exists daily_schedule jsonb not null default '{}'::jsonb,
+  add column if not exists social jsonb not null default '{}'::jsonb,
+  add column if not exists location jsonb not null default '{}'::jsonb;
 
 create table if not exists public.appointment_service_categories (
   id text primary key,
@@ -137,19 +145,29 @@ values
 on conflict (id) do nothing;
 
 drop function if exists public.save_appointment_settings(jsonb, time, time, smallint[]);
+drop function if exists public.save_appointment_settings(
+  jsonb, jsonb, time, time, smallint[], jsonb, jsonb, jsonb
+);
 
 create or replace function public.save_appointment_settings(
   p_categories jsonb,
   p_services jsonb,
   p_opening_time time,
   p_closing_time time,
-  p_working_days smallint[]
+  p_working_days smallint[],
+  p_daily_schedule jsonb,
+  p_social jsonb,
+  p_location jsonb
 )
 returns boolean
 language plpgsql
 set search_path = public
 as $$
 begin
+  update appointment_service_categories
+  set sort_order = -sort_order
+  where id is not null;
+
   insert into appointment_service_categories (id, name, note, sort_order)
   select
     category->>'id',
@@ -164,13 +182,34 @@ begin
     sort_order = excluded.sort_order;
 
   insert into appointment_business_hours
-    (id, opening_time, closing_time, working_days, updated_at)
+    (
+      id,
+      opening_time,
+      closing_time,
+      working_days,
+      daily_schedule,
+      social,
+      location,
+      updated_at
+    )
   values
-    ('default', p_opening_time, p_closing_time, p_working_days, now())
+    (
+      'default',
+      p_opening_time,
+      p_closing_time,
+      p_working_days,
+      p_daily_schedule,
+      p_social,
+      p_location,
+      now()
+    )
   on conflict (id) do update set
     opening_time = excluded.opening_time,
     closing_time = excluded.closing_time,
     working_days = excluded.working_days,
+    daily_schedule = excluded.daily_schedule,
+    social = excluded.social,
+    location = excluded.location,
     updated_at = now();
 
   delete from appointment_services as existing
@@ -199,9 +238,20 @@ begin
     price = excluded.price,
     sort_order = excluded.sort_order;
 
+  delete from appointment_service_categories as existing
+  where not exists (
+    select 1
+    from jsonb_array_elements(p_categories) as items(category)
+    where items.category->>'id' = existing.id
+  );
+
   return true;
 end;
 $$;
 
-revoke all on function public.save_appointment_settings(jsonb, jsonb, time, time, smallint[]) from public, anon, authenticated;
-grant execute on function public.save_appointment_settings(jsonb, jsonb, time, time, smallint[]) to service_role;
+revoke all on function public.save_appointment_settings(
+  jsonb, jsonb, time, time, smallint[], jsonb, jsonb, jsonb
+) from public, anon, authenticated;
+grant execute on function public.save_appointment_settings(
+  jsonb, jsonb, time, time, smallint[], jsonb, jsonb, jsonb
+) to service_role;

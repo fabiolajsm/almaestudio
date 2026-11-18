@@ -21,6 +21,31 @@ export type AppointmentSettings = {
   openingTime: number;
   closingTime: number;
   workingDays: number[];
+  dailySchedule?: AppointmentDailySchedule;
+};
+
+export type AppointmentDaySchedule = {
+  enabled: boolean;
+  openingTime: number;
+  closingTime: number;
+};
+
+export type AppointmentDailySchedule = Record<number, AppointmentDaySchedule>;
+
+export type AppointmentSocialSettings = {
+  instagram?: string;
+  whatsapp?: string;
+  tiktok?: string;
+};
+
+export type AppointmentLocationSettings = {
+  addressText?: string;
+  mapsUrl?: string;
+};
+
+export type ExtendedAppointmentSettings = AppointmentSettings & {
+  social?: AppointmentSocialSettings;
+  location?: AppointmentLocationSettings;
 };
 
 export const appointmentServiceCategories: AppointmentServiceCategoryDefinition[] = [
@@ -207,16 +232,39 @@ export function isAppointmentWorkingDay(
   dateKey: string,
   settings: AppointmentSettings = defaultAppointmentSettings,
 ) {
+  return getAppointmentScheduleForDate(dateKey, settings) !== null;
+}
+
+export function getAppointmentScheduleForDate(
+  dateKey: string,
+  settings: AppointmentSettings = defaultAppointmentSettings,
+) {
   const [year, month, day] = dateKey.split("-").map(Number);
   const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const dailySchedule = settings.dailySchedule?.[weekday];
 
-  return settings.workingDays.includes(weekday);
+  if (dailySchedule) {
+    return dailySchedule.enabled
+      ? {
+          openingTime: dailySchedule.openingTime,
+          closingTime: dailySchedule.closingTime,
+        }
+      : null;
+  }
+
+  return settings.workingDays.includes(weekday)
+    ? {
+        openingTime: settings.openingTime,
+        closingTime: settings.closingTime,
+      }
+    : null;
 }
 
 export function isAppointmentTimeWithinBusinessHours(
   time: string,
   durationMinutes: number,
   settings: AppointmentSettings = defaultAppointmentSettings,
+  dateKey?: string,
 ) {
   if (
     !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time) ||
@@ -228,9 +276,16 @@ export function isAppointmentTimeWithinBusinessHours(
 
   const [hour, minute] = time.split(":").map(Number);
   const start = hour * 60 + minute;
+  const schedule = dateKey
+    ? getAppointmentScheduleForDate(dateKey, settings)
+    : {
+        openingTime: settings.openingTime,
+        closingTime: settings.closingTime,
+      };
 
+  if (!schedule) return false;
   return (
-    start >= settings.openingTime &&
-    start + durationMinutes <= settings.closingTime
+    start >= schedule.openingTime &&
+    start + durationMinutes <= schedule.closingTime
   );
 }

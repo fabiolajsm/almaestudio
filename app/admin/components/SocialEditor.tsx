@@ -22,7 +22,7 @@ export default function SocialEditor({ social, onChange }: SocialEditorProps) {
       <p className={styles.optionSelectedDescription}>
         Configurá los canales de contacto y enlaces a tus redes.
       </p>
-      <div className={styles.serviceCard}>
+      <div className={`surface-card ${styles.serviceCard}`}>
         <label>
           WhatsApp (número con código de país, ej: +54911...)
           <input

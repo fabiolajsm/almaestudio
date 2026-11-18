@@ -123,7 +123,7 @@ export default function ModifyAppointmentPage() {
           {appointment && (
             <section
               id="edit-appointment"
-              className={styles.modifyContainer}
+              className={`surface-card ${styles.modifyContainer}`}
               aria-labelledby="edit-title"
             >
               <h3 className={styles.modifyTitle}>Modificá tu turno actual</h3>

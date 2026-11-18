@@ -74,7 +74,10 @@ export default function AdminPage() {
   if (!isAuthenticated || !initialSettings) {
     return (
       <main className={styles.adminPage}>
-        <section className={styles.loginCard} aria-labelledby="admin-title">
+        <section
+          className={`surface-card ${styles.loginCard}`}
+          aria-labelledby="admin-title"
+        >
           <h2 className={styles.eyebrow}>Alma Estudio</h2>
           <h1 id="admin-title">Administración</h1>
           <p>

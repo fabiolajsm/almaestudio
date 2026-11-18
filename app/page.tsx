@@ -9,8 +9,18 @@ import { ActionCard } from "@/components/ActionCard";
 import { IoLocationOutline } from "react-icons/io5";
 import { CARDS_ACTIONS } from "./constants";
 import SiteHeader from "../components/SiteHeader";
+import { getAppointmentSettings } from "@/lib/appointmentSettings";
 
-export default function Home() {
+const defaultAddress = "Avenida Gaona 2554. Caballito, CABA.";
+const defaultMapsUrl =
+  "https://maps.google.com/maps?q=Avenida%20Gaona%202554%2C%20Caballito%2C%20CABA%2C%20Argentina&output=embed";
+
+export default async function Home() {
+  const settings = await getAppointmentSettings();
+  const addressText =
+    settings.location?.addressText?.trim() || defaultAddress;
+  const mapsUrl = settings.location?.mapsUrl?.trim() || defaultMapsUrl;
+
   return (
     <main className="site-shell">
       <SiteHeader showNavigation isFixed />
@@ -118,14 +128,14 @@ export default function Home() {
           <IoLocationOutline aria-hidden="true" />
           <div>
             <h3>Ubicación</h3>
-            <p>Avenida Gaona 2554. Caballito, CABA.</p>
+            <p>{addressText}</p>
           </div>
         </address>
 
         <div className="moreInfoMap">
           <iframe
             title="Mapa de Google Maps con la ubicación de Alma Estudio"
-            src="https://maps.google.com/maps?q=Avenida%20Gaona%202554%2C%20Caballito%2C%20CABA%2C%20Argentina&output=embed"
+            src={mapsUrl}
             loading="lazy"
             referrerPolicy="no-referrer-when-downgrade"
           />

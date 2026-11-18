@@ -20,6 +20,29 @@
   --color-cream: #F0E9E1;
   --color-available: #368A4A;
   --color-danger: #8a2f2f;
+  --color-white: #fff;
+
+  --space-1: 0.5rem;
+  --space-2: 0.75rem;
+  --space-3: 1rem;
+  --space-4: 1.5rem;
+  --space-5: 2rem;
+  --space-6: 3rem;
+  --border-width: 1px;
+  --radius-control: 10px;
+  --radius-button: 11px;
+  --radius-surface: 20px;
+  --radius-circle: 50%;
+  --button-height: 42px;
+  --button-gap: 10px;
+  --button-padding: 10px 16px;
+  --control-height: 2.875rem;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 3px;
+  --surface-background: color-mix(in srgb, var(--color-white) 80%, transparent);
+  --surface-border: var(--border-width) solid var(--color-stone);
+  --surface-shadow: 0 2px 12px color-mix(in srgb, var(--color-ink) 8%, transparent);
+  --surface-padding: clamp(var(--space-4), 3.5vw, var(--space-5));
 }
 
 /* Base */
@@ -46,12 +69,12 @@ a {
 .primary-button,
 .secondary-button {
   display: inline-flex;
-  min-height: 42px;
+  min-height: var(--button-height);
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 11px;
+  gap: var(--button-gap);
+  padding: var(--button-padding);
+  border-radius: var(--radius-button);
   cursor: pointer;
   font: 600 var(--font-size-small) var(--font-poppins);
   transition: background-color 160ms ease, color 160ms ease;
@@ -86,8 +109,16 @@ a {
 
 .primary-button:focus-visible,
 .secondary-button:focus-visible {
-  outline: 2px solid var(--color-brown);
-  outline-offset: 3px;
+  outline: var(--focus-ring-width) solid var(--color-brown);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.surface-card {
+  border: var(--surface-border);
+  border-radius: var(--radius-surface);
+  background: var(--surface-background);
+  box-shadow: var(--surface-shadow);
+  padding: var(--surface-padding);
 }
 
 .site-shell {

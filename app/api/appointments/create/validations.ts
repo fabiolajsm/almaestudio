@@ -127,7 +127,7 @@ export function validateAppointmentSelectionInput(
     (total, service) => total + service.duration,
     0,
   );
-  if (!isAppointmentTimeWithinBusinessHours(time, duration, settings)) {
+  if (!isAppointmentTimeWithinBusinessHours(time, duration, settings, date)) {
     return {
       success: false,
       error: "El horario no está dentro del horario de atención.",

@@ -136,25 +136,9 @@ export default function ServicesEditor({
       </p>
 
       {/* Vista y edición de servicios */}
-      <div
-        className={styles.adminServicesLayout}
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "2rem",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "1rem",
-            }}
-          >
-            <h4>Seleccionar servicio</h4>
-          </div>
+      <div className={styles.adminServicesLayout}>
+        <div className={`${styles.servicesListPanel} surface-card`}>
+          <h4 className={styles.subTitle}>Seleccionar servicio</h4>
           <Services
             hasToShowCount={false}
             categories={categories}
@@ -186,43 +170,26 @@ export default function ServicesEditor({
                   price: 0,
                 });
               }}
-              style={{ marginTop: "1rem" }}
             >
               <FiPlus /> Agregar nuevo servicio
             </button>
           )}
         </div>
 
-        <div>
+        <div className={styles.serviceEditorPanel}>
           {isCreatingService ? (
             <div
-              className={styles.serviceCard}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                padding: "1.5rem",
-                borderRadius: "8px",
-              }}
+              className={`surface-card ${styles.serviceCard}`}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "1rem",
-                }}
-              >
+              <div className={styles.serviceCardHeader}>
                 <h4>Nuevo servicio</h4>
                 <button
                   type="button"
+                  className={styles.serviceCloseButton}
                   onClick={() => setIsCreatingService(false)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    color: "inherit",
-                    cursor: "pointer",
-                  }}
+                  aria-label="Cerrar formulario de nuevo servicio"
                 >
-                  <FiX size={18} />
+                  <FiX aria-hidden="true" />
                 </button>
               </div>
               <label>
@@ -312,9 +279,8 @@ export default function ServicesEditor({
               </div>
               <button
                 type="button"
-                className={styles.saveButton}
+                className="primary-button"
                 onClick={commitNewService}
-                style={{ marginTop: "1rem" }}
               >
                 <FiPlus aria-hidden="true" />
                 Guardar y agregar servicio
@@ -322,12 +288,7 @@ export default function ServicesEditor({
             </div>
           ) : selectedService ? (
             <div
-              className={styles.serviceCard}
-              style={{
-                background: "rgba(255,255,255,0.03)",
-                padding: "1.5rem",
-                borderRadius: "8px",
-              }}
+              className={`surface-card ${styles.serviceCard}`}
             >
               <h4>Editar servicio seleccionado</h4>
               <label>
@@ -416,14 +377,13 @@ export default function ServicesEditor({
                   removeService(selectedService.id);
                   setSelectedServiceIdForAdmin(null);
                 }}
-                style={{ marginTop: "1rem" }}
               >
                 <FiTrash2 aria-hidden="true" />
                 Eliminar servicio
               </button>
             </div>
           ) : (
-            <p>
+            <p className={`surface-card ${styles.emptySelection}`}>
               Acá se mostrarán los detalles del servicio seleccionado para
               editarlo o eliminarlo.
             </p>
@@ -432,11 +392,8 @@ export default function ServicesEditor({
       </div>
 
       {/* Gestión de Categorías */}
-      <div
-        className={styles.categoriesAdminContainer}
-        style={{ marginTop: "2rem", marginBottom: "2rem" }}
-      >
-        <h4>Administrar Categorías</h4>
+      <div className={`surface-card ${styles.categoriesAdminContainer}`}>
+        <h4 className={styles.subTitle}>Administrar Categorías</h4>
         {categories.map((cat) => {
           const servicesCount = services.filter(
             (s) => s.category === cat.id,
@@ -444,26 +401,18 @@ export default function ServicesEditor({
           const isEditing = editingCategoryId === cat.id;
 
           return (
-            <div
-              key={cat.id}
-              style={{
-                display: "flex",
-                gap: "1rem",
-                alignItems: "center",
-                marginBottom: "0.5rem",
-              }}
-            >
+            <div key={cat.id} className={styles.categoryRow}>
               {isEditing ? (
                 <input
                   type="text"
+                  className={styles.categoryInput}
                   value={cat.name}
                   onChange={(e) => updateCategoryName(cat.id, e.target.value)}
                   maxLength={60}
                   autoFocus
-                  style={{ flex: 1 }}
                 />
               ) : (
-                <span style={{ flex: 1, padding: "0.5rem 0" }}>{cat.name}</span>
+                <span className={styles.categoryName}>{cat.name}</span>
               )}
 
               {/* Botón alternar Lápiz / Ok (Check) */}
@@ -491,9 +440,7 @@ export default function ServicesEditor({
                 <FiTrash2 />
               </button>
 
-              <span
-                style={{ fontSize: "0.85rem", opacity: 0.8, minWidth: "90px" }}
-              >
+              <span className={styles.categoryCount}>
                 ({servicesCount} serv.)
               </span>
             </div>
@@ -503,7 +450,6 @@ export default function ServicesEditor({
           type="button"
           className="secondary-button"
           onClick={addCategory}
-          style={{ marginTop: "0.5rem" }}
         >
           <FiPlus /> Agregar categoría
         </button>

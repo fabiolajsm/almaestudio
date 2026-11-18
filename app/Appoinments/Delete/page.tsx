@@ -73,7 +73,7 @@ export default function DeleteAppointmentPage() {
 
           {appointment && (
             <section
-              className={`${styles.confirmation} ${styles.cancelPanel}`}
+              className={`surface-card ${styles.confirmation}`}
               aria-label="Cancelar turno encontrado"
             >
               <div className={styles.cancelHeading}>

@@ -67,7 +67,7 @@ function isAvailabilityMap(
     value !== null &&
     typeof value === "object" &&
     !Array.isArray(value) &&
-    Object.values(value).every((slots) => {
+    Object.entries(value).every(([dateKey, slots]) => {
       if (!Array.isArray(slots)) {
         return false;
       }
@@ -83,6 +83,7 @@ function isAvailabilityMap(
             slot.time,
             durationMinutes,
             settings,
+            dateKey,
           ) ||
           seenTimes.has(slot.time)
         ) {
@@ -297,7 +298,28 @@ export default function AppointmentSchedule({
       selectedTime ?? "",
       serviceDuration,
       settings,
+      selectedDate ?? undefined,
     );
+  const scheduleDescription = settings.dailySchedule
+    ? Object.entries(settings.dailySchedule)
+        .filter(([, schedule]) => schedule.enabled)
+        .sort(
+          ([firstDay], [secondDay]) =>
+            (Number(firstDay) + 6) % 7 - (Number(secondDay) + 6) % 7,
+        )
+        .map(([day, schedule]) => {
+          const opening = `${String(Math.floor(schedule.openingTime / 60)).padStart(2, "0")}:${String(schedule.openingTime % 60).padStart(2, "0")}`;
+          const closing = `${String(Math.floor(schedule.closingTime / 60)).padStart(2, "0")}:${String(schedule.closingTime % 60).padStart(2, "0")}`;
+          return `${weekdayNames[Number(day)]}: ${opening} a ${closing} hs.`;
+        })
+        .join(" · ")
+    : `Atención los: ${settings.workingDays
+        .map(
+          (day) =>
+            weekdayNames[day].charAt(0).toUpperCase() +
+            weekdayNames[day].slice(1),
+        )
+        .join(", ")}, de ${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")} a ${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")} hs.`;
 
   useEffect(() => {
     if (serviceDuration <= 0) {
@@ -430,19 +452,7 @@ export default function AppointmentSchedule({
       </div>
 
       <p className={styles.availabilityNote}>
-        Atención los:{" "}
-        {settings.workingDays
-          .map(
-            (day) =>
-              weekdayNames[day].charAt(0).toUpperCase() +
-              weekdayNames[day].slice(1),
-          )
-          .join(", ")}
-        , de{" "}
-        {`${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")}`}
-        {" a "}
-        {`${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")} `}
-        hs.
+        {scheduleDescription}
       </p>
 
       {shouldShowShorterServiceNotice && (

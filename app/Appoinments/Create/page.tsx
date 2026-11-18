@@ -77,7 +77,7 @@ export default function CreateAppointmentPage() {
         title="Tu próximo momento."
         description="Elegí con calma. La agenda se actualiza en cada paso."
       />
-      <div className={styles.bookingPanel}>
+      <div className={`surface-card ${styles.bookingPanel}`}>
         <div className={styles.workflow}>
           <ol className={styles.stepper} aria-label="Pasos para sacar turno">
             {CREATE_STEPS.map((step, index) => {

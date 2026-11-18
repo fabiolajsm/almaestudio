@@ -79,19 +79,21 @@ export default function ScheduleEditor({
           };
 
           return (
-            <div key={value} className={styles.serviceCard}>
-              <label>
-                <strong>{label}</strong>{" "}
-                {dayConfig.enabled ? "(Abierto)" : "(Cerrado)"}
-              <input
-                type="checkbox"
-                checked={dayConfig.enabled}
-                onChange={(event) =>
-                  updateDaySchedule(value, {
-                    enabled: event.currentTarget.checked,
-                  })
-                }
-              />
+            <div key={value} className={`surface-card ${styles.dayCard}`}>
+              <label className={styles.dayToggle}>
+                <span>
+                  <strong>{label}</strong>{" "}
+                  {dayConfig.enabled ? "(Abierto)" : "(Cerrado)"}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={dayConfig.enabled}
+                  onChange={(event) =>
+                    updateDaySchedule(value, {
+                      enabled: event.currentTarget.checked,
+                    })
+                  }
+                />
               </label>
 
               {dayConfig.enabled && (

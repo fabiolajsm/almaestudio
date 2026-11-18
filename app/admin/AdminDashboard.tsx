@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import type { FormEvent } from "react";
 import { FiLogOut, FiSave } from "react-icons/fi";
 import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
 import Loading from "@/components/Loading";
@@ -22,6 +21,7 @@ import ScheduleEditor from "./components/ScheduleEditor";
 import SocialEditor from "./components/SocialEditor";
 import LocationEditor from "./components/LocationEditor";
 import { WEEKDAYS, SECTION_OPTIONS } from "./constants";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 function normalizeSettings(
   raw: AppointmentSettings,
@@ -47,12 +47,8 @@ function normalizeSettings(
       tiktok: extended.social?.tiktok ?? "",
     },
     location: {
-      address: extended.location?.address ?? "",
-      city: extended.location?.city ?? "",
-      province: extended.location?.province ?? "",
-      postalCode: extended.location?.postalCode ?? "",
+      addressText: extended.location?.addressText ?? "",
       mapsUrl: extended.location?.mapsUrl ?? "",
-      notes: extended.location?.notes ?? "",
     },
   };
 }
@@ -70,6 +66,7 @@ export default function AdminDashboard({
   const [activeSection, setActiveSection] = useState<AdminSection>("services");
   const [isLoading, setIsLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [message, setMessage] = useState("");
 
   function updateSettings(partial: Partial<ExtendedAppointmentSettings>) {
@@ -102,13 +99,29 @@ export default function AdminDashboard({
         showBackButton={false}
       />
 
-      {message && (
-        <p className={styles.message} role="status">
-          {message}
-        </p>
-      )}
+      <form
+        className={styles.settingsForm}
+        onSubmit={(event) => {
+          event.preventDefault();
+          const categoriesWithServices = new Set(
+            settings.services.map((service) => service.category),
+          );
+          const emptyCategories = settings.categories.filter(
+            (category) => !categoriesWithServices.has(category.id),
+          );
 
-      <form className={styles.settingsForm} onSubmit={saveSettings}>
+          if (emptyCategories.length > 0) {
+            setMessage(
+              "No se pueden guardar los cambios: todas las categorías deben tener al menos un servicio asociado. Agregá un servicio o eliminá las categorías vacías.",
+            );
+            setIsConfirmDialogOpen(false);
+            return;
+          }
+
+          setMessage("");
+          setIsConfirmDialogOpen(true);
+        }}
+      >
         <section className={styles.selectedOption}>
           <label htmlFor="section-selector">¿Qué querés modificar?</label>
 
@@ -169,12 +182,11 @@ export default function AdminDashboard({
           />
         )}
 
-        <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
+        <div className={styles.saveActions}>
           <button
             type="submit"
             className="primary-button"
             disabled={isLoading}
-            style={{ flex: 1 }}
           >
             {isLoading ? (
               <Loading label="Guardando..." inline />
@@ -190,17 +202,31 @@ export default function AdminDashboard({
             className="secondary-button"
             onClick={discardChanges}
             disabled={isLoading}
-            style={{ padding: "0 1.5rem" }}
           >
             Descartar cambios
           </button>
         </div>
       </form>
+
+      {message && (
+        <p className={styles.message} role="status">
+          {message}
+        </p>
+      )}
+      <ConfirmDialog
+        isOpen={isConfirmDialogOpen}
+        title="Confirmar cambios"
+        description="¿Deseas aplicar y guardar todos los cambios realizados en el estudio?"
+        confirmText="Guardar cambios"
+        cancelText="Cancelar"
+        isBusy={isLoading}
+        onConfirm={() => void saveSettings()}
+        onCancel={() => setIsConfirmDialogOpen(false)}
+      />
     </main>
   );
 
-  async function saveSettings(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveSettings() {
     setIsLoading(true);
     setMessage("");
 
@@ -265,6 +291,7 @@ export default function AdminDashboard({
       );
     } finally {
       setIsLoading(false);
+      setIsConfirmDialogOpen(false);
     }
   }
 
