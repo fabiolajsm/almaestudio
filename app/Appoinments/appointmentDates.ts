@@ -1,3 +1,10 @@
+import {
+  APPOINTMENT_WORKING_DAYS,
+  CALENDAR_MONTH_INDEX_OFFSET,
+  DATE_PART_PAD_LENGTH,
+  DAYS_TO_ADVANCE_FOR_NEXT_APPOINTMENT,
+} from "@/app/constants";
+
 const argentinaDateFormatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "America/Argentina/Buenos_Aires",
   year: "numeric",
@@ -14,10 +21,16 @@ export function getArgentinaDateKey(date: Date) {
 
 export function getNextAppointmentDate(
   today: string,
-  workingDays: number[] = [1, 2, 3, 4, 5, 6],
+  workingDays: number[] = APPOINTMENT_WORKING_DAYS,
 ) {
   const [year, month, day] = today.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day + 1));
+  const date = new Date(
+    Date.UTC(
+      year,
+      month - CALENDAR_MONTH_INDEX_OFFSET,
+      day + DAYS_TO_ADVANCE_FOR_NEXT_APPOINTMENT,
+    ),
+  );
 
   while (!workingDays.includes(date.getUTCDay())) {
     date.setUTCDate(date.getUTCDate() + 1);
@@ -25,7 +38,10 @@ export function getNextAppointmentDate(
 
   return [
     date.getUTCFullYear(),
-    String(date.getUTCMonth() + 1).padStart(2, "0"),
-    String(date.getUTCDate()).padStart(2, "0"),
+    String(date.getUTCMonth() + CALENDAR_MONTH_INDEX_OFFSET).padStart(
+      DATE_PART_PAD_LENGTH,
+      "0",
+    ),
+    String(date.getUTCDate()).padStart(DATE_PART_PAD_LENGTH, "0"),
   ].join("-");
 }

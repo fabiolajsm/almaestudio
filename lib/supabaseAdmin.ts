@@ -1,5 +1,9 @@
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
-import type { ExtendedAppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import {
+  MIN_APPOINTMENT_CATEGORIES,
+  MIN_APPOINTMENT_SERVICES,
+} from "@/app/constants";
+import type { ExtendedAppointmentSettings } from "@/app/types";
 
 export type AdminAppointmentReservation = {
   id: string;
@@ -168,10 +172,18 @@ export async function getAppointmentSettingsRecord(): Promise<unknown | null> {
     note: string | null;
   }>;
 
-  if (!hours && services.length === 0 && categories.length === 0) {
+  if (
+    !hours &&
+    services.length < MIN_APPOINTMENT_SERVICES &&
+    categories.length < MIN_APPOINTMENT_CATEGORIES
+  ) {
     return null;
   }
-  if (!hours || services.length === 0 || categories.length === 0) {
+  if (
+    !hours ||
+    services.length < MIN_APPOINTMENT_SERVICES ||
+    categories.length < MIN_APPOINTMENT_CATEGORIES
+  ) {
     throw new Error("Supabase devolvió una configuración de turnos incompleta.");
   }
 

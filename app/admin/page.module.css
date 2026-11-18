@@ -291,7 +291,7 @@
   flex: 0 0 auto;
   min-width: 5rem;
   color: var(--color-brown);
-  font-size: var(--font-size-small-mobile);
+  font-size: var(--font-size-small);
   text-align: center;
 }
 
@@ -320,24 +320,6 @@
   outline-offset: var(--focus-ring-offset);
 }
 
-.serviceCloseButton {
-  display: inline-grid;
-  width: var(--control-height);
-  height: var(--control-height);
-  flex: 0 0 auto;
-  place-items: center;
-  border: var(--border-width) solid var(--color-stone);
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--color-ink);
-  cursor: pointer;
-}
-
-.serviceCloseButton:focus-visible {
-  outline: var(--focus-ring-width) solid var(--color-brown);
-  outline-offset: var(--focus-ring-offset);
-}
-
 .emptySelection {
   align-self: start;
   margin: 0;
@@ -361,6 +343,12 @@
   .adminPage {
     width: min(calc(100% - var(--space-4)), 60rem);
     padding-block: var(--space-5);
+  }
+
+  .loginCard h1 {
+    font-size: var(--font-size-large-mobile);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
   }
 
   .adminServicesLayout,

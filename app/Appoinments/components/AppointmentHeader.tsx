@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
+import type { AppointmentHeaderProps } from "@/app/Appoinments/types";
 import styles from "./AppointmentHeader.module.css";
-
-type AppointmentHeaderProps = {
-  actionLabel: string;
-  title: string;
-  description?: string | React.ReactNode;
-  backHref?: string;
-  showBackButton?: boolean;
-};
 
 export default function AppointmentHeader({
   actionLabel,

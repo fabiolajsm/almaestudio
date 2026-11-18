@@ -1,10 +1,6 @@
 import Link from "next/link";
+import type { SiteHeaderProps } from "./types";
 import styles from "./SiteHeader.module.css";
-
-type SiteHeaderProps = {
-  showNavigation?: boolean;
-  isFixed?: boolean;
-};
 
 export default function SiteHeader({
   showNavigation = false,

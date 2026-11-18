@@ -2,37 +2,22 @@ import {
   defaultAppointmentSettings,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
-  type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
-import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
-
-type ValidationResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
-
-export type CreateAppointmentInput = {
-  date: string;
-  time: string;
-  serviceIds: string[];
-  duration: number;
-  totalPrice: number;
-  customer: AppointmentContactInput;
-};
-
-export type AppointmentSelectionInput = {
-  date: string;
-  time: string;
-  serviceIds: string[];
-  duration: number;
-  totalPrice: number;
-};
-
-export type AppointmentContactInput = {
-  name: string;
-  email: string;
-  phone: string;
-};
+import { MIN_APPOINTMENT_SERVICES } from "@/app/constants";
+import {
+  isValidAppointmentDateKey,
+  validateAppointmentContactFields,
+} from "@/app/validations";
+import type {
+  AppointmentContact,
+  AppointmentSettings,
+  ValidationResult,
+} from "@/app/types";
+import type {
+  AppointmentSelectionInput,
+  CreateAppointmentInput,
+} from "../types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -48,14 +33,11 @@ function isValidAppointmentDate(
   date: string,
   settings: AppointmentSettings,
 ) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  if (!isValidAppointmentDateKey(date)) {
     return false;
   }
 
-  const parsed = new Date(`${date}T00:00:00.000Z`);
   return (
-    !Number.isNaN(parsed.getTime()) &&
-    parsed.toISOString().slice(0, 10) === date &&
     date >= getArgentinaDateKey(new Date()) &&
     isAppointmentWorkingDay(date, settings)
   );
@@ -107,7 +89,7 @@ export function validateAppointmentSelectionInput(
 
   if (
     !Array.isArray(serviceIds) ||
-    serviceIds.length === 0 ||
+    serviceIds.length < MIN_APPOINTMENT_SERVICES ||
     !serviceIds.every((id): id is string => typeof id === "string") ||
     new Set(serviceIds).size !== serviceIds.length
   ) {
@@ -151,7 +133,7 @@ export function validateAppointmentSelectionInput(
 
 export function validateAppointmentContact(
   value: unknown,
-): ValidationResult<AppointmentContactInput> {
+): ValidationResult<AppointmentContact> {
   if (!isRecord(value)) {
     return { success: false, error: "El pedido no tiene un formato válido." };
   }

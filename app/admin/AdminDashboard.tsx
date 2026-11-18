@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { FiLogOut, FiSave } from "react-icons/fi";
-import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import {
+  DEFAULT_ADMIN_CLOSING_TIME,
+  DEFAULT_ADMIN_OPENING_TIME,
+  SECTION_OPTIONS,
+  WEEKDAYS,
+} from "@/app/constants";
+import type { AppointmentSettings } from "@/app/types";
+import { validateAdminSettings } from "@/app/validations";
 import Loading from "@/components/Loading";
 import { isAppointmentSettings } from "@/components/useAppointmentSettings";
 import AppointmentHeader from "../Appoinments/components/AppointmentHeader";
@@ -11,6 +18,7 @@ import { IoIosArrowDropdownCircle } from "react-icons/io";
 
 import type {
   AdminSection,
+  AdminSettingsValidationError,
   DailyScheduleMap,
   ExtendedAppointmentSettings,
   AdminDashboardProps,
@@ -20,7 +28,6 @@ import ServicesEditor from "./components/ServicesEditor";
 import ScheduleEditor from "./components/ScheduleEditor";
 import SocialEditor from "./components/SocialEditor";
 import LocationEditor from "./components/LocationEditor";
-import { WEEKDAYS, SECTION_OPTIONS } from "./constants";
 import ConfirmDialog from "@/components/ConfirmDialog";
 
 function normalizeSettings(
@@ -33,8 +40,10 @@ function normalizeSettings(
     const existing = extended.dailySchedule?.[value];
     dailySchedule[value] = {
       enabled: existing ? existing.enabled : raw.workingDays.includes(value),
-      openingTime: existing?.openingTime ?? raw.openingTime ?? 540,
-      closingTime: existing?.closingTime ?? raw.closingTime ?? 1080,
+      openingTime:
+        existing?.openingTime ?? raw.openingTime ?? DEFAULT_ADMIN_OPENING_TIME,
+      closingTime:
+        existing?.closingTime ?? raw.closingTime ?? DEFAULT_ADMIN_CLOSING_TIME,
     };
   }
 
@@ -67,11 +76,26 @@ export default function AdminDashboard({
   const [isLoading, setIsLoading] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
+  const [hasValidatedSettings, setHasValidatedSettings] = useState(false);
+  const [settingsValidationError, setSettingsValidationError] =
+    useState<AdminSettingsValidationError | null>(null);
   const [message, setMessage] = useState("");
+  const [refreshAfterMessage, setRefreshAfterMessage] = useState(false);
 
   function updateSettings(partial: Partial<ExtendedAppointmentSettings>) {
-    setSettings((current) => ({ ...current, ...partial }));
-    setMessage("");
+    const updatedSettings = { ...settings, ...partial };
+    setSettings(updatedSettings);
+
+    if (hasValidatedSettings) {
+      const validationError = validateAdminSettings(updatedSettings);
+      setSettingsValidationError(validationError);
+      setMessage(validationError?.message ?? "");
+      if (validationError) {
+        setActiveSection(validationError.section);
+      }
+    } else {
+      setMessage("");
+    }
   }
 
   return (
@@ -101,19 +125,15 @@ export default function AdminDashboard({
 
       <form
         className={styles.settingsForm}
+        noValidate
         onSubmit={(event) => {
           event.preventDefault();
-          const categoriesWithServices = new Set(
-            settings.services.map((service) => service.category),
-          );
-          const emptyCategories = settings.categories.filter(
-            (category) => !categoriesWithServices.has(category.id),
-          );
-
-          if (emptyCategories.length > 0) {
-            setMessage(
-              "No se pueden guardar los cambios: todas las categorías deben tener al menos un servicio asociado. Agregá un servicio o eliminá las categorías vacías.",
-            );
+          setHasValidatedSettings(true);
+          const validationError = validateAdminSettings(settings);
+          setSettingsValidationError(validationError);
+          if (validationError) {
+            setMessage(validationError.message);
+            setActiveSection(validationError.section);
             setIsConfirmDialogOpen(false);
             return;
           }
@@ -131,7 +151,9 @@ export default function AdminDashboard({
               value={activeSection}
               onChange={(event) => {
                 setActiveSection(event.currentTarget.value as AdminSection);
-                setMessage("");
+                if (!settingsValidationError) {
+                  setMessage("");
+                }
               }}
             >
               {SECTION_OPTIONS.map((option) => (
@@ -186,7 +208,7 @@ export default function AdminDashboard({
           <button
             type="submit"
             className="primary-button"
-            disabled={isLoading}
+            disabled={isLoading || settingsValidationError !== null}
           >
             {isLoading ? (
               <Loading label="Guardando..." inline />
@@ -208,11 +230,15 @@ export default function AdminDashboard({
         </div>
       </form>
 
-      {message && (
-        <p className={styles.message} role="status">
-          {message}
-        </p>
-      )}
+      <ConfirmDialog
+        isOpen={Boolean(message)}
+        title="Aviso"
+        description={message}
+        confirmText="Confirmar"
+        isShowCancelBtn={false}
+        onConfirm={dismissMessage}
+        onCancel={dismissMessage}
+      />
       <ConfirmDialog
         isOpen={isConfirmDialogOpen}
         title="Confirmar cambios"
@@ -283,6 +309,7 @@ export default function AdminDashboard({
       setSavedSettings(normalized);
       setSettings(normalized);
       setMessage("Los cambios se guardaron correctamente.");
+      setRefreshAfterMessage(true);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -298,7 +325,16 @@ export default function AdminDashboard({
   function discardChanges() {
     if (window.confirm("¿Querés descartar los cambios no guardados?")) {
       setSettings(savedSettings);
+      setHasValidatedSettings(false);
+      setSettingsValidationError(null);
       setMessage("Se descartaron los cambios.");
+    }
+  }
+
+  function dismissMessage() {
+    setMessage("");
+    if (refreshAfterMessage) {
+      window.location.reload();
     }
   }
 

@@ -1,16 +1,7 @@
 import Link from "next/link";
 import { FiArrowRight } from "react-icons/fi";
-import type { ReactNode } from "react";
+import type { SuccessStateProps } from "@/app/Appoinments/types";
 import styles from "./SuccessState.module.css";
-
-interface SuccessStateProps {
-  icon: ReactNode;
-  title: string;
-  description: ReactNode;
-  actionLabel?: string;
-  actionHref?: string;
-  variant?: "success" | "danger";
-}
 
 export default function SuccessState({
   icon,

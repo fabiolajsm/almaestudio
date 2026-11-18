@@ -15,11 +15,8 @@ import {
   hasSameOrigin,
   validateCreateAppointmentInput,
 } from "./validations";
-
-type CreateAppointmentResult = {
-  appointment_id: string;
-  reservation_code: number;
-};
+import type { CreateAppointmentResult } from "../types";
+import { MAX_CREATE_APPOINTMENT_REQUEST_BYTES } from "@/app/constants";
 
 function matchesExistingAppointment(
   existing: NonNullable<Awaited<ReturnType<typeof getAppointmentReservation>>>,
@@ -50,7 +47,15 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    const bodyText = await request.text();
+    if (Buffer.byteLength(bodyText) > MAX_CREATE_APPOINTMENT_REQUEST_BYTES) {
+      return Response.json(
+        { error: "La solicitud es demasiado grande." },
+        { status: 413 },
+      );
+    }
+
+    body = JSON.parse(bodyText);
   } catch {
     return Response.json(
       { error: "El pedido no tiene un formato válido." },

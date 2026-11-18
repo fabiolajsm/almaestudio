@@ -2,23 +2,14 @@
 
 import { useState } from "react";
 import { FiCheck, FiChevronDown, FiPlus } from "react-icons/fi";
-import {
-  type AppointmentService,
-  type AppointmentServiceCategoryDefinition,
-} from "@/app/Appoinments/appointmentCatalog";
+import type {
+  AppointmentService,
+  AppointmentServiceCategoryDefinition,
+} from "@/app/types";
+import type { ServicesProps } from "./types";
 import styles from "./Services.module.css";
 
-export type Service = AppointmentService;
-
 const currencyFormatter = new Intl.NumberFormat("es-AR");
-
-type ServicesProps = {
-  categories: AppointmentServiceCategoryDefinition[];
-  services: AppointmentService[];
-  selectedServiceIds: string[];
-  onToggleService: (serviceId: string) => void;
-  hasToShowCount?: boolean;
-};
 
 export default function Services({
   categories,

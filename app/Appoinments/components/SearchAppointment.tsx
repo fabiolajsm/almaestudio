@@ -3,41 +3,25 @@
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { FiArrowRight } from "react-icons/fi";
-import { legacyAppointmentServiceNames } from "@/app/Appoinments/appointmentCatalog";
+import {
+  EMAIL_MAX_LENGTH,
+  ERROR_MESSAGES,
+  NON_DIGIT_PATTERN,
+  RESERVATION_CODE_MAX_LENGTH,
+} from "@/app/constants";
 import Loading from "../../../components/Loading";
 import TurnSummary from "./TurnSummary";
-import type { Service } from "../../../components/Services";
+import type {
+  AppointmentSearchApiResult,
+  AppointmentSearchResult,
+  SearchAppointmentProps,
+} from "@/app/Appoinments/types";
+import type {
+  AppointmentService,
+  AppointmentServiceCategoryDefinition,
+} from "@/app/types";
+import { validateAppointmentLookupCredentials } from "@/app/validations";
 import styles from "./SearchAppointment.module.css";
-import { ERROR_MESSAGES } from "@/app/constants";
-
-export type AppointmentSearchResult = {
-  reservationCode: number;
-  appointmentDate: string;
-  startTime: string;
-  durationMinutes: number;
-  serviceIds: string[];
-  totalPrice: number;
-  customerName: string | null;
-};
-
-export type AppointmentSearchCredentials = {
-  reservationCode: string;
-  email: string;
-};
-
-type SearchAppointmentProps = {
-  services: Service[];
-  onAppointmentFound: (
-    appointment: AppointmentSearchResult,
-    credentials: AppointmentSearchCredentials,
-  ) => void;
-  onSearchAnother?: () => void;
-};
-
-type ApiResult = {
-  error?: unknown;
-  appointment?: unknown;
-};
 
 function isAppointmentSearchResult(
   value: unknown,
@@ -65,14 +49,17 @@ function isAppointmentSearchResult(
 
 function getSummaryServices(
   appointment: AppointmentSearchResult,
-  services: Service[],
-): Service[] {
+  services: AppointmentService[],
+  categories: AppointmentServiceCategoryDefinition[],
+): AppointmentService[] {
+  const fallbackCategory = categories[0]?.id ?? "";
+
   return appointment.serviceIds.map(
     (id) =>
       services.find((service) => service.id === id) ?? {
         id,
-        name: legacyAppointmentServiceNames[id] ?? "Servicio",
-        category: "manicura",
+        name: "Servicio",
+        category: fallbackCategory,
         duration: 0,
         price: 0,
       },
@@ -80,6 +67,7 @@ function getSummaryServices(
 }
 
 export default function SearchAppointment({
+  categories,
   services,
   onAppointmentFound,
   onSearchAnother,
@@ -90,9 +78,25 @@ export default function SearchAppointment({
     useState<AppointmentSearchResult | null>(null);
   const [isBusy, setIsBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const credentialsValidation = validateAppointmentLookupCredentials({
+    reservationCode,
+    email,
+  });
+  const credentialsError =
+    reservationCode || email.trim()
+      ? credentialsValidation.success
+        ? ""
+        : credentialsValidation.error
+      : "";
+  const visibleMessage = message || credentialsError;
 
   async function findAppointment(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!credentialsValidation.success) {
+      setMessage(credentialsValidation.error);
+      return;
+    }
+
     setIsBusy(true);
     setMessage("");
 
@@ -100,9 +104,9 @@ export default function SearchAppointment({
       const response = await fetch("/api/appointments/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservationCode, email }),
+        body: JSON.stringify(credentialsValidation.data),
       });
-      const result = (await response.json()) as ApiResult;
+      const result = (await response.json()) as AppointmentSearchApiResult;
 
       if (!response.ok) {
         throw new Error(
@@ -117,7 +121,7 @@ export default function SearchAppointment({
       }
 
       setAppointment(result.appointment);
-      onAppointmentFound(result.appointment, { reservationCode, email });
+      onAppointmentFound(result.appointment, credentialsValidation.data);
     } catch (error) {
       setMessage(
         error instanceof Error
@@ -149,7 +153,7 @@ export default function SearchAppointment({
             </h2>
           </div>
           <TurnSummary
-            services={getSummaryServices(appointment, services)}
+            services={getSummaryServices(appointment, services, categories)}
             selectedDate={appointment.appointmentDate}
             selectedTime={appointment.startTime.slice(0, 5)}
             durationMinutes={appointment.durationMinutes}
@@ -178,11 +182,11 @@ export default function SearchAppointment({
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="Ej.: 12345"
-                maxLength={15}
+                maxLength={RESERVATION_CODE_MAX_LENGTH}
                 value={reservationCode}
                 onChange={(event) => {
                   setReservationCode(
-                    event.currentTarget.value.replace(/\D/g, ""),
+                    event.currentTarget.value.replace(NON_DIGIT_PATTERN, ""),
                   );
                   setMessage("");
                 }}
@@ -196,7 +200,7 @@ export default function SearchAppointment({
                 name="email"
                 autoComplete="email"
                 placeholder="tu@email.com"
-                maxLength={254}
+                maxLength={EMAIL_MAX_LENGTH}
                 value={email}
                 onChange={(event) => {
                   setEmail(event.currentTarget.value);
@@ -205,16 +209,16 @@ export default function SearchAppointment({
                 required
               />
             </label>
-            {message && (
+            {visibleMessage && (
               <p className={styles.error} role="alert">
-                {message}
+                {visibleMessage}
               </p>
             )}
             <button
               type="submit"
               className={`primary-button ${styles.searchButton}`}
               disabled={
-                isBusy || reservationCode.length === 0 || email.trim() === ""
+                isBusy || !credentialsValidation.success
               }
             >
               {isBusy ? (

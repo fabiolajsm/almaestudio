@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import type { AppointmentSettings } from "@/app/types";
 
 export function isAppointmentSettings(
   value: unknown,

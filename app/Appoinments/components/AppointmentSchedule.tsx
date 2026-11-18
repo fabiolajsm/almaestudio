@@ -3,60 +3,23 @@
 import { useEffect, useState } from "react";
 import {
   isAppointmentTimeWithinBusinessHours,
-  type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
+import {
+  CALENDAR_MONTH_INDEX_OFFSET,
+  CALENDAR_MONTH_NAMES,
+  CALENDAR_WEEKDAY_LABELS,
+  CALENDAR_WEEKDAY_NAMES,
+  DATE_PART_PAD_LENGTH,
+  MINUTES_PER_HOUR,
+} from "@/app/constants";
+import type {
+  AppointmentScheduleProps,
+  AvailabilityState,
+} from "@/app/Appoinments/types";
+import type { AppointmentSettings } from "@/app/types";
 import type { AppointmentTimeSlot } from "@/lib/googleCalendar";
 import Loading from "../../../components/Loading";
 import styles from "./AppointmentSchedule.module.css";
-
-type AppointmentScheduleProps = {
-  today: string;
-  serviceDuration: number;
-  settings: AppointmentSettings;
-  selectedDate: string | null;
-  selectedTime: string | null;
-  appointmentLookup?: {
-    reservationCode: number;
-    email: string;
-  };
-  onSelectDate: (date: string) => void;
-  onSelectTime: (time: string) => void;
-  showHeading?: boolean;
-};
-
-const weekdays = ["L", "M", "X", "J", "V", "S", "D"];
-const monthNames = [
-  "enero",
-  "febrero",
-  "marzo",
-  "abril",
-  "mayo",
-  "junio",
-  "julio",
-  "agosto",
-  "septiembre",
-  "octubre",
-  "noviembre",
-  "diciembre",
-];
-const weekdayNames = [
-  "domingo",
-  "lunes",
-  "martes",
-  "miércoles",
-  "jueves",
-  "viernes",
-  "sábado",
-];
-
-type AvailabilityState =
-  | {
-      key: string;
-      status: "success";
-      timeSlots: Record<string, AppointmentTimeSlot[]>;
-      hasShorterServiceAvailability: Record<string, boolean>;
-    }
-  | { key: string; status: "error"; message: string };
 
 function isAvailabilityMap(
   value: unknown,
@@ -110,10 +73,25 @@ function isShorterServiceAvailabilityMap(
   );
 }
 
+function formatTime(minutes: number) {
+  return `${String(Math.floor(minutes / MINUTES_PER_HOUR)).padStart(
+    DATE_PART_PAD_LENGTH,
+    "0",
+  )}:${String(minutes % MINUTES_PER_HOUR).padStart(
+    DATE_PART_PAD_LENGTH,
+    "0",
+  )}`;
+}
+
 function getDateKey(date: Date) {
   const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(
+    date.getUTCMonth() + CALENDAR_MONTH_INDEX_OFFSET,
+  ).padStart(DATE_PART_PAD_LENGTH, "0");
+  const day = String(date.getUTCDate()).padStart(
+    DATE_PART_PAD_LENGTH,
+    "0",
+  );
 
   return `${year}-${month}-${day}`;
 }
@@ -121,15 +99,17 @@ function getDateKey(date: Date) {
 function getDateFromKey(dateKey: string) {
   const [year, month, day] = dateKey.split("-").map(Number);
 
-  return new Date(Date.UTC(year, month - 1, day));
+  return new Date(
+    Date.UTC(year, month - CALENDAR_MONTH_INDEX_OFFSET, day),
+  );
 }
 
 function getMonthName(date: Date) {
-  return `${monthNames[date.getUTCMonth()]} de ${date.getUTCFullYear()}`;
+  return `${CALENDAR_MONTH_NAMES[date.getUTCMonth()]} de ${date.getUTCFullYear()}`;
 }
 
 function getAccessibleDate(date: Date) {
-  return `${weekdayNames[date.getUTCDay()]}, ${date.getUTCDate()} de ${monthNames[date.getUTCMonth()]}`;
+  return `${CALENDAR_WEEKDAY_NAMES[date.getUTCDay()]}, ${date.getUTCDate()} de ${CALENDAR_MONTH_NAMES[date.getUTCMonth()]}`;
 }
 
 function CalendarMonth({
@@ -168,7 +148,7 @@ function CalendarMonth({
         role="group"
         aria-label="Días del mes"
       >
-        {weekdays.map((weekday) => (
+        {CALENDAR_WEEKDAY_LABELS.map((weekday) => (
           <span key={weekday} className={styles.weekday}>
             {weekday}
           </span>
@@ -308,18 +288,18 @@ export default function AppointmentSchedule({
             (Number(firstDay) + 6) % 7 - (Number(secondDay) + 6) % 7,
         )
         .map(([day, schedule]) => {
-          const opening = `${String(Math.floor(schedule.openingTime / 60)).padStart(2, "0")}:${String(schedule.openingTime % 60).padStart(2, "0")}`;
-          const closing = `${String(Math.floor(schedule.closingTime / 60)).padStart(2, "0")}:${String(schedule.closingTime % 60).padStart(2, "0")}`;
-          return `${weekdayNames[Number(day)]}: ${opening} a ${closing} hs.`;
+          const opening = formatTime(schedule.openingTime);
+          const closing = formatTime(schedule.closingTime);
+          return `${CALENDAR_WEEKDAY_NAMES[Number(day)]}: ${opening} a ${closing} hs.`;
         })
         .join(" · ")
     : `Atención los: ${settings.workingDays
         .map(
           (day) =>
-            weekdayNames[day].charAt(0).toUpperCase() +
-            weekdayNames[day].slice(1),
+            CALENDAR_WEEKDAY_NAMES[day].charAt(0).toUpperCase() +
+              CALENDAR_WEEKDAY_NAMES[day].slice(1),
         )
-        .join(", ")}, de ${String(Math.floor(settings.openingTime / 60)).padStart(2, "0")}:${String(settings.openingTime % 60).padStart(2, "0")} a ${String(Math.floor(settings.closingTime / 60)).padStart(2, "0")}:${String(settings.closingTime % 60).padStart(2, "0")} hs.`;
+        .join(", ")}, de ${formatTime(settings.openingTime)} a ${formatTime(settings.closingTime)} hs.`;
 
   useEffect(() => {
     if (serviceDuration <= 0) {

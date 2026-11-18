@@ -1,20 +1,8 @@
 import Link from "next/link";
 import { FiArrowRight, FiCalendar,  FiX } from "react-icons/fi";
 import { GoPencil } from "react-icons/go";
+import type { ActionCardProps } from "./types";
 import styles from "./ActionCard.module.css";
-
-type ActionCardItem = {
-  number: string;
-  title: string;
-  description: string;
-  href: string;
-  label: string;
-};
-
-type ActionCardProps = {
-  card: ActionCardItem;
-  index: number;
-};
 
 const cardMeta = [
   { label: "AGENDAR", Icon: FiCalendar },

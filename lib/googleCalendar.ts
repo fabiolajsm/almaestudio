@@ -5,8 +5,8 @@ import {
   getAppointmentScheduleForDate,
   isAppointmentTimeWithinBusinessHours,
   isAppointmentWorkingDay,
-  type AppointmentSettings,
 } from "@/app/Appoinments/appointmentCatalog";
+import type { AppointmentSettings } from "@/app/types";
 import { getArgentinaDateKey } from "@/app/Appoinments/appointmentDates";
 import { getActiveAppointmentReservations } from "@/lib/supabaseAdmin";
 

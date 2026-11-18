@@ -5,6 +5,7 @@ import {
 } from "@/lib/appointmentSettings";
 import { SupabaseRequestError } from "@/lib/supabaseAdmin";
 import { requireAdmin } from "../appointments/authorization";
+import { MAX_ADMIN_SETTINGS_REQUEST_BYTES } from "@/app/constants";
 
 export const runtime = "nodejs";
 
@@ -45,7 +46,7 @@ export async function PUT(request: Request) {
   let body: unknown;
   try {
     const bodyText = await request.text();
-    if (Buffer.byteLength(bodyText) > 32_768) {
+    if (Buffer.byteLength(bodyText) > MAX_ADMIN_SETTINGS_REQUEST_BYTES) {
       return Response.json(
         { error: "La solicitud es demasiado grande." },
         { status: 413 },

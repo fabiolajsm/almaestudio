@@ -1,14 +1,7 @@
 import { FiCalendar } from "react-icons/fi";
-import type { Service } from "../../../components/Services";
+import { MIN_APPOINTMENT_SERVICES } from "@/app/constants";
+import type { TurnSummaryProps } from "@/app/Appoinments/types";
 import styles from "./TurnSummary.module.css";
-
-type TurnSummaryProps = {
-  services: Service[];
-  selectedDate: string | null;
-  selectedTime: string | null;
-  durationMinutes?: number;
-  totalPrice?: number;
-};
 
 const currencyFormatter = new Intl.NumberFormat("es-AR");
 
@@ -54,7 +47,7 @@ export default function TurnSummary({
         Resumen del turno
       </h2>
 
-      {services.length === 0 ? (
+      {services.length < MIN_APPOINTMENT_SERVICES ? (
         <div className={styles.emptyState}>
           <FiCalendar className={styles.calendarIcon} aria-hidden="true" />
           <p className={styles.emptyMessage}>
@@ -70,7 +63,9 @@ export default function TurnSummary({
           </p>
         </div>
       )}
-      {(services.length > 0 || selectedDate || selectedTime) && (
+      {(services.length >= MIN_APPOINTMENT_SERVICES ||
+        selectedDate ||
+        selectedTime) && (
         <dl className={styles.appointmentDetails}>
           <div className={styles.detailRow}>
             <dt>Fecha</dt>

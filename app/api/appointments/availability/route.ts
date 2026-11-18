@@ -6,19 +6,18 @@ import {
 import { getAppointmentForCustomer } from "@/lib/supabaseAdmin";
 import { getAppointmentSettings } from "@/lib/appointmentSettings";
 import { hasSameOrigin } from "../create/validations";
+import {
+  MAX_AVAILABILITY_RANGE_DAYS,
+  MAX_LOOKUP_REQUEST_BYTES,
+  MILLISECONDS_PER_DAY,
+  SERVICE_DURATION_MINUTES,
+} from "@/app/constants";
+import {
+  isValidAppointmentDateKey,
+  validateAppointmentLookupCredentials,
+} from "@/app/validations";
 
 export const runtime = "nodejs";
-
-const dayInMilliseconds = 24 * 60 * 60 * 1000;
-
-function isValidDateKey(dateKey: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-    return false;
-  }
-
-  const date = new Date(`${dateKey}T00:00:00.000Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === dateKey;
-}
 
 function getAvailabilityRange(
   startDate: string,
@@ -30,13 +29,13 @@ function getAvailabilityRange(
     Date.parse(`${startDate}T00:00:00.000Z`);
 
   if (
-    !isValidDateKey(startDate) ||
-    !isValidDateKey(endDate) ||
+    !isValidAppointmentDateKey(startDate) ||
+    !isValidAppointmentDateKey(endDate) ||
     startDate < getArgentinaDateKey(new Date()) ||
     endDate < startDate ||
-    dateRange > 62 * dayInMilliseconds ||
+    dateRange > MAX_AVAILABILITY_RANGE_DAYS * MILLISECONDS_PER_DAY ||
     !Number.isInteger(durationMinutes) ||
-    durationMinutes < 15
+    durationMinutes < SERVICE_DURATION_MINUTES.min
   ) {
     return null;
   }
@@ -103,7 +102,7 @@ export async function POST(request: Request) {
   let body: unknown;
   try {
     const bodyText = await request.text();
-    if (Buffer.byteLength(bodyText) > 1024) {
+    if (Buffer.byteLength(bodyText) > MAX_LOOKUP_REQUEST_BYTES) {
       return Response.json(
         { error: "La solicitud es demasiado grande." },
         { status: 413 },
@@ -125,14 +124,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const reservationCode =
-    typeof body.reservationCode === "number" &&
-    Number.isSafeInteger(body.reservationCode) &&
-    body.reservationCode > 0
-      ? body.reservationCode
-      : Number.NaN;
-  const email =
-    typeof body.email === "string" ? body.email.trim().toLocaleLowerCase() : "";
+  const credentials = validateAppointmentLookupCredentials(body);
   const range = getAvailabilityRange(
     typeof body.startDate === "string" ? body.startDate : "",
     typeof body.endDate === "string" ? body.endDate : "",
@@ -140,9 +132,7 @@ export async function POST(request: Request) {
   );
 
   if (
-    !Number.isSafeInteger(reservationCode) ||
-    email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+    !credentials.success ||
     !range
   ) {
     return Response.json(
@@ -150,6 +140,8 @@ export async function POST(request: Request) {
       { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
+  const reservationCode = Number(credentials.data.reservationCode);
+  const { email } = credentials.data;
 
   try {
     const settings = await getAppointmentSettings();

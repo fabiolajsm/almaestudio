@@ -3,6 +3,8 @@ import {
   getAppointmentForCustomer,
   SupabaseRequestError,
 } from "@/lib/supabaseAdmin";
+import { validateAppointmentLookupCredentials } from "@/app/validations";
+import { MAX_LOOKUP_REQUEST_BYTES } from "@/app/constants";
 
 export const runtime = "nodejs";
 
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
   let body: unknown;
   try {
     const bodyText = await request.text();
-    if (Buffer.byteLength(bodyText) > 1024) {
+    if (Buffer.byteLength(bodyText) > MAX_LOOKUP_REQUEST_BYTES) {
       return Response.json(
         { error: "La solicitud es demasiado grande." },
         { status: 413 },
@@ -40,25 +42,15 @@ export async function POST(request: Request) {
     );
   }
 
-  const reservationCode =
-    typeof body.reservationCode === "string" &&
-    /^\d{1,15}$/.test(body.reservationCode)
-      ? Number(body.reservationCode)
-      : Number.NaN;
-  const email =
-    typeof body.email === "string" ? body.email.trim().toLocaleLowerCase() : "";
-
-  if (
-    !Number.isSafeInteger(reservationCode) ||
-    reservationCode <= 0 ||
-    email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  ) {
+  const credentials = validateAppointmentLookupCredentials(body);
+  if (!credentials.success) {
     return Response.json(
-      { error: "Ingresá un código de reserva y un email válidos." },
+      { error: credentials.error },
       { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
+  const reservationCode = Number(credentials.data.reservationCode);
+  const { email } = credentials.data;
 
   try {
     const appointment = await getAppointmentForCustomer(reservationCode);

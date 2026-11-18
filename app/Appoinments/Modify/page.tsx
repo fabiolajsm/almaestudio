@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import { FiArrowLeft, FiCheck, FiEdit3 } from "react-icons/fi";
+import { MIN_APPOINTMENT_SERVICES } from "@/app/constants";
+import { FiArrowLeft, FiCheck } from "react-icons/fi";
 import { FaRegCalendarAlt } from "react-icons/fa";
 import AppointmentHeader from "../components/AppointmentHeader";
 import SiteHeader from "../../../components/SiteHeader";
@@ -11,7 +12,8 @@ import SearchAppointment from "@/app/Appoinments/components/SearchAppointment";
 import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
-} from "@/app/Appoinments/components/SearchAppointment";
+  ModifyAppointmentApiResult,
+} from "@/app/Appoinments/types";
 import Services from "@/components/Services";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -33,11 +35,6 @@ function getCurrentArgentinaDate() {
 function getServerDate() {
   return "";
 }
-
-type ModifyApiResult = {
-  error?: unknown;
-  modified?: unknown;
-};
 
 export default function ModifyAppointmentPage() {
   const {
@@ -110,6 +107,7 @@ export default function ModifyAppointmentPage() {
       ) : (
         <>
           <SearchAppointment
+            categories={settings?.categories ?? []}
             services={settings?.services ?? []}
             onAppointmentFound={handleAppointmentFound}
             onSearchAnother={searchAnotherAppointment}
@@ -167,7 +165,7 @@ export default function ModifyAppointmentPage() {
                     selectedDate={currentSelectedDate}
                     selectedTime={selectedTime}
                     appointmentLookup={{
-                      reservationCode: appointment.reservationCode,
+                      reservationCode: appointment.reservationCode.toString(),
                       email,
                     }}
                     onSelectDate={(date) => {
@@ -205,7 +203,7 @@ export default function ModifyAppointmentPage() {
                     isBusy ||
                     !settings ||
                     isLoadingSettings ||
-                    selectedServiceIds.length === 0 ||
+                    selectedServiceIds.length < MIN_APPOINTMENT_SERVICES ||
                     !selectedDate ||
                     !selectedTime ||
                     !hasChanges
@@ -251,7 +249,7 @@ export default function ModifyAppointmentPage() {
           serviceIds: selectedServiceIds,
         }),
       });
-      const result = (await response.json()) as ModifyApiResult;
+      const result = (await response.json()) as ModifyAppointmentApiResult;
 
       if (response.ok && result.modified === true) {
         setIsSaved(true);

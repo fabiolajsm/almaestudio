@@ -1,36 +1,31 @@
 "use client";
 
-import type { DailyScheduleMap, DaySchedule } from "../types";
+import {
+  DEFAULT_ADMIN_OPENING_TIME,
+  MINUTES_PER_HOUR,
+  SCHEDULE_INPUT_STEP_SECONDS,
+  WEEKDAYS,
+} from "@/app/constants";
+import type {
+  DailyScheduleMap,
+  DaySchedule,
+  ScheduleEditorProps,
+} from "../types";
 import styles from "../page.module.css";
 
-const weekdays = [
-  { value: 1, label: "Lunes" },
-  { value: 2, label: "Martes" },
-  { value: 3, label: "Miércoles" },
-  { value: 4, label: "Jueves" },
-  { value: 5, label: "Viernes" },
-  { value: 6, label: "Sábado" },
-  { value: 0, label: "Domingo" },
-];
-
 function formatTime(minutes: number) {
-  const safeMinutes = Number.isFinite(minutes) ? minutes : 540;
-  return `${String(Math.floor(safeMinutes / 60)).padStart(2, "0")}:${String(
-    safeMinutes % 60,
+  const safeMinutes = Number.isFinite(minutes)
+    ? minutes
+    : DEFAULT_ADMIN_OPENING_TIME;
+  return `${String(Math.floor(safeMinutes / MINUTES_PER_HOUR)).padStart(2, "0")}:${String(
+    safeMinutes % MINUTES_PER_HOUR,
   ).padStart(2, "0")}`;
 }
 
 function parseTime(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
-  return hours * 60 + minutes;
+  return hours * MINUTES_PER_HOUR + minutes;
 }
-
-type ScheduleEditorProps = {
-  dailySchedule?: DailyScheduleMap;
-  defaultOpening: number;
-  defaultClosing: number;
-  onChange: (dailySchedule: DailyScheduleMap, workingDays: number[]) => void;
-};
 
 export default function ScheduleEditor({
   dailySchedule,
@@ -71,7 +66,7 @@ export default function ScheduleEditor({
         cierre.
       </p>
       <div className={styles.daysGrid}>
-        {weekdays.map(({ value, label }) => {
+        {WEEKDAYS.map(({ value, label }) => {
           const dayConfig = dailySchedule?.[value] ?? {
             enabled: false,
             openingTime: defaultOpening,
@@ -102,7 +97,7 @@ export default function ScheduleEditor({
                     Apertura
                     <input
                       type="time"
-                      step={900}
+                      step={SCHEDULE_INPUT_STEP_SECONDS}
                       value={formatTime(dayConfig.openingTime)}
                       onChange={(event) =>
                         updateDaySchedule(value, {
@@ -116,7 +111,7 @@ export default function ScheduleEditor({
                     Cierre
                     <input
                       type="time"
-                      step={900}
+                      step={SCHEDULE_INPUT_STEP_SECONDS}
                       value={formatTime(dayConfig.closingTime)}
                       onChange={(event) =>
                         updateDaySchedule(value, {

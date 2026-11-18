@@ -1,12 +1,8 @@
 "use client";
 
-import type { SocialSettings } from "../types";
+import { SOCIAL_VALUE_MAX_LENGTH } from "@/app/constants";
+import type { SocialEditorProps, SocialSettings } from "../types";
 import styles from "../page.module.css";
-
-type SocialEditorProps = {
-  social?: SocialSettings;
-  onChange: (social: SocialSettings) => void;
-};
 
 export default function SocialEditor({ social, onChange }: SocialEditorProps) {
   function updateField(field: keyof SocialSettings, value: string) {
@@ -28,6 +24,7 @@ export default function SocialEditor({ social, onChange }: SocialEditorProps) {
           <input
             type="tel"
             placeholder="+54 9 11 1234-5678"
+            maxLength={SOCIAL_VALUE_MAX_LENGTH}
             value={social?.whatsapp ?? ""}
             onChange={(event) => updateField("whatsapp", event.currentTarget.value)}
           />
@@ -37,6 +34,7 @@ export default function SocialEditor({ social, onChange }: SocialEditorProps) {
           <input
             type="text"
             placeholder="https://instagram.com/almaestudio"
+            maxLength={SOCIAL_VALUE_MAX_LENGTH}
             value={social?.instagram ?? ""}
             onChange={(event) => updateField("instagram", event.currentTarget.value)}
           />
@@ -46,6 +44,7 @@ export default function SocialEditor({ social, onChange }: SocialEditorProps) {
           <input
             type="text"
             placeholder="https://tiktok.com/@almaestudio"
+            maxLength={SOCIAL_VALUE_MAX_LENGTH}
             value={social?.tiktok ?? ""}
             onChange={(event) => updateField("tiktok", event.currentTarget.value)}
           />

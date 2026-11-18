@@ -4,19 +4,14 @@ import {
   GoogleCalendarIntegrationError,
 } from "@/lib/googleCalendar";
 import { getAppointmentSettings } from "@/lib/appointmentSettings";
+import {
+  MAX_AVAILABILITY_RANGE_DAYS,
+  MILLISECONDS_PER_DAY,
+  SERVICE_DURATION_MINUTES,
+} from "@/app/constants";
+import { isValidAppointmentDateKey } from "@/app/validations";
 
 export const runtime = "nodejs";
-
-const dayInMilliseconds = 24 * 60 * 60 * 1000;
-
-function isValidDateKey(dateKey: string) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
-    return false;
-  }
-
-  const date = new Date(`${dateKey}T00:00:00.000Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === dateKey;
-}
 
 export async function GET(request: Request) {
   if (process.env.NODE_ENV !== "development") {
@@ -32,13 +27,13 @@ export async function GET(request: Request) {
     Date.parse(`${startDate}T00:00:00.000Z`);
 
   if (
-    !isValidDateKey(startDate) ||
-    !isValidDateKey(endDate) ||
+    !isValidAppointmentDateKey(startDate) ||
+    !isValidAppointmentDateKey(endDate) ||
     startDate < getArgentinaDateKey(new Date()) ||
     endDate < startDate ||
-    dateRange > 62 * dayInMilliseconds ||
+    dateRange > MAX_AVAILABILITY_RANGE_DAYS * MILLISECONDS_PER_DAY ||
     !Number.isInteger(durationMinutes) ||
-    durationMinutes < 15
+    durationMinutes < SERVICE_DURATION_MINUTES.min
   ) {
     return Response.json(
       { error: "El rango de fechas o la duración no son válidos." },

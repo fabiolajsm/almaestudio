@@ -10,17 +10,13 @@ import SearchAppointment from "@/app/Appoinments/components/SearchAppointment";
 import type {
   AppointmentSearchCredentials,
   AppointmentSearchResult,
-} from "@/app/Appoinments/components/SearchAppointment";
+  CancelAppointmentApiResult,
+} from "@/app/Appoinments/types";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import SuccessState from "../components/SuccessState";
 import styles from "./page.module.css";
 import { ERROR_MESSAGES } from "@/app/constants";
-
-type CancelApiResult = {
-  error?: unknown;
-  cancelled?: unknown;
-};
 
 export default function DeleteAppointmentPage() {
   const { settings, error: settingsError } = useAppointmentSettings();
@@ -60,6 +56,7 @@ export default function DeleteAppointmentPage() {
       ) : (
         <>
           <SearchAppointment
+            categories={settings?.categories ?? []}
             services={settings?.services ?? []}
             onAppointmentFound={handleAppointmentFound}
             onSearchAnother={searchAnotherAppointment}
@@ -152,7 +149,7 @@ export default function DeleteAppointmentPage() {
           email,
         }),
       });
-      const result = (await response.json()) as CancelApiResult;
+      const result = (await response.json()) as CancelAppointmentApiResult;
 
       if (!response.ok || result.cancelled !== true) {
         throw new Error(

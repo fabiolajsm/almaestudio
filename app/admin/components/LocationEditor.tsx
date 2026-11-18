@@ -1,12 +1,8 @@
 "use client";
 
-import type { LocationSettings } from "../types";
+import { ADDRESS_MAX_LENGTH, MAPS_URL_MAX_LENGTH } from "@/app/constants";
+import type { LocationEditorProps, LocationSettings } from "../types";
 import styles from "../page.module.css";
-
-type LocationEditorProps = {
-  location?: LocationSettings;
-  onChange: (location: LocationSettings) => void;
-};
 
 export default function LocationEditor({
   location,
@@ -30,7 +26,7 @@ export default function LocationEditor({
           Dirección
           <input
             type="text"
-            maxLength={300}
+            maxLength={ADDRESS_MAX_LENGTH}
             placeholder="Av. Santa Fe 1234, Palermo, CABA"
             value={location?.addressText ?? ""}
             onChange={(event) =>
@@ -42,7 +38,7 @@ export default function LocationEditor({
           Enlace de Google Maps
           <input
             type="url"
-            maxLength={2000}
+            maxLength={MAPS_URL_MAX_LENGTH}
             placeholder="https://www.google.com/maps/embed?..."
             value={location?.mapsUrl ?? ""}
             onChange={(event) =>

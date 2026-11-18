@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import type { AppointmentSettings } from "@/app/Appoinments/appointmentCatalog";
+import type { AppointmentSettings } from "@/app/types";
 import Loading from "@/components/Loading";
 import { isAppointmentSettings } from "@/components/useAppointmentSettings";
 import AdminDashboard from "./AdminDashboard";
@@ -66,7 +66,7 @@ export default function AdminPage() {
   if (isCheckingSession) {
     return (
       <main className={styles.adminPage}>
-        <Loading label="Verificando acceso..." />
+        <Loading label="Cargando..." />
       </main>
     );
   }

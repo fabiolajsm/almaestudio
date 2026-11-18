@@ -1,9 +1,40 @@
 import {
   defaultAppointmentSettings,
-  type ExtendedAppointmentSettings,
-  type AppointmentServiceCategoryDefinition,
-  type AppointmentService,
 } from "@/app/Appoinments/appointmentCatalog";
+import {
+  ADDRESS_MAX_LENGTH,
+  APPOINTMENT_ID_MAX_LENGTH,
+  CATEGORY_ID_MAX_LENGTH,
+  CATEGORY_NAME_MAX_LENGTH,
+  CATEGORY_NOTE_MAX_LENGTH,
+  MAX_APPOINTMENT_CATEGORIES,
+  MAX_APPOINTMENT_SERVICES,
+  MAPS_URL_MAX_LENGTH,
+  MIN_APPOINTMENT_CATEGORIES,
+  MIN_APPOINTMENT_SERVICES,
+  MAX_SCHEDULE_MINUTES,
+  MIN_SCHEDULE_MINUTES,
+  SCHEDULE_MINUTE_INCREMENT,
+  SERVICE_DESCRIPTION_MAX_LENGTH,
+  SERVICE_DURATION_MINUTES,
+  SERVICE_NAME_MAX_LENGTH,
+  SERVICE_PRICE,
+  SOCIAL_VALUE_MAX_LENGTH,
+  WEEKDAY_KEY_PATTERN,
+  WEEKDAY_MAX,
+  WEEKDAY_MIN,
+} from "@/app/constants";
+import type {
+  AppointmentService,
+  AppointmentServiceCategoryDefinition,
+  ExtendedAppointmentSettings,
+} from "@/app/types";
+import {
+  isValidAppointmentId,
+  isValidMapsUrl,
+  isValidScheduleMinutes,
+  validateAdminSettings,
+} from "@/app/validations";
 import {
   getAppointmentSettingsRecord,
   saveAppointmentSettingsRecord,
@@ -11,16 +42,6 @@ import {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function isValidScheduleTime(value: unknown): value is number {
-  return (
-    typeof value === "number" &&
-    Number.isInteger(value) &&
-    value >= 0 &&
-    value < 24 * 60 &&
-    value % 15 === 0
-  );
 }
 
 function parseSocialSettings(value: unknown) {
@@ -32,7 +53,12 @@ function parseSocialSettings(value: unknown) {
   const social: Record<string, string> = {};
   for (const field of ["instagram", "whatsapp", "tiktok"] as const) {
     const entry = value[field] ?? "";
-    if (typeof entry !== "string" || entry.length > 500) return null;
+    if (
+      typeof entry !== "string" ||
+      entry.length > SOCIAL_VALUE_MAX_LENGTH
+    ) {
+      return null;
+    }
     social[field] = entry.trim();
   }
   return social;
@@ -48,27 +74,17 @@ function parseLocationSettings(value: unknown) {
   const mapsUrl = value.mapsUrl ?? "";
   if (
     typeof addressText !== "string" ||
-    addressText.length > 300 ||
+    addressText.length > ADDRESS_MAX_LENGTH ||
+    (addressText.length > 0 && !addressText.trim()) ||
     typeof mapsUrl !== "string" ||
-    mapsUrl.length > 2000
+    mapsUrl.length > MAPS_URL_MAX_LENGTH
   ) {
     return null;
   }
 
   const trimmedMapsUrl = mapsUrl.trim();
-  if (trimmedMapsUrl) {
-    try {
-      const url = new URL(trimmedMapsUrl);
-      if (
-        url.protocol !== "https:" ||
-        (url.hostname !== "google.com" &&
-          !url.hostname.endsWith(".google.com"))
-      ) {
-        return null;
-      }
-    } catch {
-      return null;
-    }
+  if (trimmedMapsUrl && !isValidMapsUrl(trimmedMapsUrl)) {
+    return null;
   }
 
   return { addressText: addressText.trim(), mapsUrl: trimmedMapsUrl };
@@ -105,12 +121,14 @@ export function parseAppointmentSettings(
     const category = categoryValue as Record<string, unknown>;
     if (
       typeof category.id !== "string" ||
-      !/^[a-z0-9][a-z0-9-]{0,63}$/.test(category.id) ||
+      category.id.length > CATEGORY_ID_MAX_LENGTH ||
+      !isValidAppointmentId(category.id) ||
       typeof category.name !== "string" ||
       category.name.trim().length === 0 ||
-      category.name.length > 60 ||
+      category.name.length > CATEGORY_NAME_MAX_LENGTH ||
       (category.note !== undefined &&
-        (typeof category.note !== "string" || category.note.length > 240))
+        (typeof category.note !== "string" ||
+          category.note.length > CATEGORY_NOTE_MAX_LENGTH))
     ) {
       return null;
     }
@@ -125,8 +143,8 @@ export function parseAppointmentSettings(
   }
 
   if (
-    categories.length === 0 ||
-    categories.length > 30 ||
+    categories.length < MIN_APPOINTMENT_CATEGORIES ||
+    categories.length > MAX_APPOINTMENT_CATEGORIES ||
     new Set(categories.map((category) => category.id)).size !==
       categories.length ||
     new Set(
@@ -146,23 +164,25 @@ export function parseAppointmentSettings(
     const service = serviceValue;
     if (
       typeof service.id !== "string" ||
-      !/^[a-z0-9][a-z0-9-]{0,63}$/.test(service.id) ||
+      service.id.length > APPOINTMENT_ID_MAX_LENGTH ||
+      !isValidAppointmentId(service.id) ||
       typeof service.category !== "string" ||
       !categoryIds.has(service.category) ||
       typeof service.name !== "string" ||
       service.name.trim().length === 0 ||
-      service.name.length > 100 ||
+      service.name.length > SERVICE_NAME_MAX_LENGTH ||
       (service.description !== undefined &&
         (typeof service.description !== "string" ||
-          service.description.length > 240)) ||
+          service.description.length > SERVICE_DESCRIPTION_MAX_LENGTH)) ||
       typeof service.duration !== "number" ||
       !Number.isInteger(service.duration) ||
-      service.duration < 15 ||
-      service.duration > 600 ||
+      service.duration < SERVICE_DURATION_MINUTES.min ||
+      service.duration > SERVICE_DURATION_MINUTES.max ||
+      service.duration % SERVICE_DURATION_MINUTES.step !== 0 ||
       typeof service.price !== "number" ||
       !Number.isSafeInteger(service.price) ||
-      service.price < 0 ||
-      service.price > 10_000_000
+      service.price < SERVICE_PRICE.min ||
+      service.price > SERVICE_PRICE.max
     ) {
       return null;
     }
@@ -180,8 +200,8 @@ export function parseAppointmentSettings(
   }
 
   if (
-    services.length === 0 ||
-    services.length > 100 ||
+    services.length < MIN_APPOINTMENT_SERVICES ||
+    services.length > MAX_APPOINTMENT_SERVICES ||
     new Set(services.map((service) => service.id)).size !==
       services.length
   ) {
@@ -192,11 +212,11 @@ export function parseAppointmentSettings(
   if (
     !Number.isInteger(openingTime) ||
     !Number.isInteger(closingTime) ||
-    openingTime < 0 ||
-    closingTime > 23 * 60 + 45 ||
+    openingTime < MIN_SCHEDULE_MINUTES ||
+    closingTime > MAX_SCHEDULE_MINUTES ||
     openingTime >= closingTime ||
-    openingTime % 15 !== 0 ||
-    closingTime % 15 !== 0
+    openingTime % SCHEDULE_MINUTE_INCREMENT !== 0 ||
+    closingTime % SCHEDULE_MINUTE_INCREMENT !== 0
   ) {
     return null;
   }
@@ -208,8 +228,8 @@ export function parseAppointmentSettings(
       (day) =>
         typeof day !== "number" ||
         !Number.isInteger(day) ||
-        day < 0 ||
-        day > 6,
+        day < WEEKDAY_MIN ||
+        day > WEEKDAY_MAX,
     ) ||
     new Set(workingDays).size !== workingDays.length
   ) {
@@ -224,29 +244,35 @@ export function parseAppointmentSettings(
   ) {
     const enabledDays = new Set(workingDays);
     dailySchedule = Object.fromEntries(
-      Array.from({ length: 7 }, (_, day) => [
-        day,
-        { enabled: enabledDays.has(day), openingTime, closingTime },
-      ]),
+      Array.from(
+        { length: WEEKDAY_MAX - WEEKDAY_MIN + 1 },
+        (_, index) => {
+          const day = index + WEEKDAY_MIN;
+          return [
+            day,
+            { enabled: enabledDays.has(day), openingTime, closingTime },
+          ];
+        },
+      ),
     );
   } else {
     if (!isRecord(candidate.dailySchedule)) return null;
     const keys = Object.keys(candidate.dailySchedule);
     if (
-      keys.length !== 7 ||
-      keys.some((key) => !/^[0-6]$/.test(key))
+      keys.length !== WEEKDAY_MAX - WEEKDAY_MIN + 1 ||
+      keys.some((key) => !WEEKDAY_KEY_PATTERN.test(key))
     ) {
       return null;
     }
 
     dailySchedule = {};
-    for (let day = 0; day <= 6; day += 1) {
+    for (let day = WEEKDAY_MIN; day <= WEEKDAY_MAX; day += 1) {
       const schedule = candidate.dailySchedule[String(day)];
       if (
         !isRecord(schedule) ||
         typeof schedule.enabled !== "boolean" ||
-        !isValidScheduleTime(schedule.openingTime) ||
-        !isValidScheduleTime(schedule.closingTime) ||
+        !isValidScheduleMinutes(schedule.openingTime) ||
+        !isValidScheduleMinutes(schedule.closingTime) ||
         schedule.openingTime >= schedule.closingTime
       ) {
         return null;
@@ -275,7 +301,7 @@ export function parseAppointmentSettings(
   const location = parseLocationSettings(candidate.location);
   if (!social || !location) return null;
 
-  return {
+  const settings: ExtendedAppointmentSettings = {
     categories,
     services,
     openingTime: Math.min(
@@ -289,6 +315,8 @@ export function parseAppointmentSettings(
     social,
     location,
   };
+
+  return validateAdminSettings(settings) ? null : settings;
 }
 
 export async function getAppointmentSettings(): Promise<ExtendedAppointmentSettings> {
@@ -308,17 +336,6 @@ export async function getAppointmentSettings(): Promise<ExtendedAppointmentSetti
 export async function saveAppointmentSettings(value: unknown) {
   const settings = parseAppointmentSettings(value);
   if (!settings) {
-    return null;
-  }
-
-  const categoriesWithServices = new Set(
-    settings.services.map((service) => service.category),
-  );
-  if (
-    settings.categories.some(
-      (category) => !categoriesWithServices.has(category.id),
-    )
-  ) {
     return null;
   }
 

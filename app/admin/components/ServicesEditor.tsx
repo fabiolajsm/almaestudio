@@ -2,21 +2,27 @@
 
 import { useState } from "react";
 import { FiCheck, FiEdit2, FiPlus, FiTrash2, FiX } from "react-icons/fi";
+import {
+  CATEGORY_NAME_MAX_LENGTH,
+  DEFAULT_SERVICE_DURATION,
+  DEFAULT_SERVICE_PRICE,
+  MAX_APPOINTMENT_CATEGORIES,
+  MIN_APPOINTMENT_CATEGORIES,
+  MIN_APPOINTMENT_SERVICES,
+  SERVICE_DESCRIPTION_MAX_LENGTH,
+  SERVICE_DURATION_MINUTES,
+  SERVICE_NAME_MAX_LENGTH,
+  SERVICE_PRICE,
+} from "@/app/constants";
+import { validateAppointmentServiceDraft } from "@/app/validations";
 import type {
   AppointmentService,
-  AppointmentServiceCategoryDefinition,
-} from "@/app/Appoinments/appointmentCatalog";
+  AppointmentServiceDraft,
+} from "@/app/types";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import Services from "@/components/Services";
+import type { ServicesEditorProps } from "../types";
 import styles from "../page.module.css";
-
-type ServicesEditorProps = {
-  categories: AppointmentServiceCategoryDefinition[];
-  services: AppointmentService[];
-  onChange: (
-    categories: AppointmentServiceCategoryDefinition[],
-    services: AppointmentService[],
-  ) => void;
-};
 
 export default function ServicesEditor({
   categories,
@@ -26,16 +32,19 @@ export default function ServicesEditor({
   const [selectedServiceIdForAdmin, setSelectedServiceIdForAdmin] = useState<
     string | null
   >(null);
+  const [serviceIdPendingRemoval, setServiceIdPendingRemoval] = useState<
+    string | null
+  >(null);
   const [isCreatingService, setIsCreatingService] = useState(false);
-  const [newServiceDraft, setNewServiceDraft] = useState<
-    Omit<AppointmentService, "id">
-  >({
-    name: "",
-    description: "",
-    category: categories[0]?.id ?? "",
-    duration: 60,
-    price: 0,
-  });
+  const [newServiceDraft, setNewServiceDraft] =
+    useState<AppointmentServiceDraft>({
+      name: "",
+      description: "",
+      category: categories[0]?.id ?? "",
+      duration: DEFAULT_SERVICE_DURATION,
+      price: DEFAULT_SERVICE_PRICE,
+    });
+  const [serviceDraftError, setServiceDraftError] = useState("");
 
   // Estado para controlar qué categoría se está editando con el lápiz/ok
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(
@@ -45,6 +54,14 @@ export default function ServicesEditor({
   const selectedService = services.find(
     (s) => s.id === selectedServiceIdForAdmin,
   );
+  const servicePendingRemoval = services.find(
+    (service) => service.id === serviceIdPendingRemoval,
+  );
+
+  function updateNewServiceDraft(changes: Partial<AppointmentServiceDraft>) {
+    setNewServiceDraft((current) => ({ ...current, ...changes }));
+    setServiceDraftError("");
+  }
 
   function updateCategoryName(categoryId: string, name: string) {
     const updatedCategories = categories.map((cat) =>
@@ -75,7 +92,7 @@ export default function ServicesEditor({
       );
       return;
     }
-    if (categories.length <= 1) {
+    if (categories.length <= MIN_APPOINTMENT_CATEGORIES) {
       alert("Debe existir al menos una categoría.");
       return;
     }
@@ -95,8 +112,12 @@ export default function ServicesEditor({
   }
 
   function commitNewService() {
-    if (!newServiceDraft.name.trim()) {
-      alert("El servicio debe tener un nombre válido.");
+    const validationError = validateAppointmentServiceDraft(
+      newServiceDraft,
+      categories,
+    );
+    if (validationError) {
+      setServiceDraftError(validationError);
       return;
     }
 
@@ -110,21 +131,40 @@ export default function ServicesEditor({
     ];
     onChange(categories, updatedServices);
     setIsCreatingService(false);
+    setServiceDraftError("");
     setSelectedServiceIdForAdmin(newId);
   }
 
   function removeService(serviceId: string) {
     const service = services.find((item) => item.id === serviceId);
-    if (
-      !service ||
-      services.length <= 1 ||
-      !window.confirm(`¿Querés eliminar el servicio «${service.name}»?`)
-    ) {
+    if (!service || services.length <= MIN_APPOINTMENT_SERVICES) {
       return;
     }
 
-    const updatedServices = services.filter((item) => item.id !== serviceId);
+    setServiceIdPendingRemoval(serviceId);
+  }
+
+  function confirmRemoveService() {
+    if (!serviceIdPendingRemoval) {
+      return;
+    }
+
+    if (
+      services.length <= MIN_APPOINTMENT_SERVICES ||
+      !services.some((service) => service.id === serviceIdPendingRemoval)
+    ) {
+      setServiceIdPendingRemoval(null);
+      return;
+    }
+
+    const updatedServices = services.filter(
+      (item) => item.id !== serviceIdPendingRemoval,
+    );
     onChange(categories, updatedServices);
+    setSelectedServiceIdForAdmin((selectedId) =>
+      selectedId === serviceIdPendingRemoval ? null : selectedId,
+    );
+    setServiceIdPendingRemoval(null);
   }
 
   return (
@@ -155,19 +195,21 @@ export default function ServicesEditor({
               }
             }}
           />
-          {categories.length > 0 && !isCreatingService && (
+          {categories.length >= MIN_APPOINTMENT_CATEGORIES &&
+            !isCreatingService && (
             <button
               type="button"
               className="secondary-button"
               onClick={() => {
                 setIsCreatingService(true);
                 setSelectedServiceIdForAdmin(null);
+                setServiceDraftError("");
                 setNewServiceDraft({
                   name: "",
                   description: "",
                   category: categories[0].id,
-                  duration: 60,
-                  price: 0,
+                  duration: DEFAULT_SERVICE_DURATION,
+                  price: DEFAULT_SERVICE_PRICE,
                 });
               }}
             >
@@ -185,11 +227,15 @@ export default function ServicesEditor({
                 <h4>Nuevo servicio</h4>
                 <button
                   type="button"
-                  className={styles.serviceCloseButton}
-                  onClick={() => setIsCreatingService(false)}
-                  aria-label="Cerrar formulario de nuevo servicio"
+                  className="secondary-button"
+                  onClick={() => {
+                    setIsCreatingService(false);
+                    setServiceDraftError("");
+                  }}
+                  aria-label="Descartar nuevo servicio"
                 >
                   <FiX aria-hidden="true" />
+                  Descartar
                 </button>
               </div>
               <label>
@@ -197,13 +243,12 @@ export default function ServicesEditor({
                 <input
                   type="text"
                   value={newServiceDraft.name}
-                  maxLength={100}
+                  maxLength={SERVICE_NAME_MAX_LENGTH}
                   placeholder="Ej: Corte y Brushings"
                   onChange={(event) =>
-                    setNewServiceDraft((prev) => ({
-                      ...prev,
+                    updateNewServiceDraft({
                       name: event.currentTarget.value,
-                    }))
+                    })
                   }
                   required
                 />
@@ -213,10 +258,9 @@ export default function ServicesEditor({
                 <select
                   value={newServiceDraft.category}
                   onChange={(event) =>
-                    setNewServiceDraft((prev) => ({
-                      ...prev,
+                    updateNewServiceDraft({
                       category: event.currentTarget.value,
-                    }))
+                    })
                   }
                 >
                   {categories.map((cat) => (
@@ -230,14 +274,13 @@ export default function ServicesEditor({
                 Descripción
                 <textarea
                   value={newServiceDraft.description ?? ""}
-                  maxLength={240}
+                  maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
                   rows={3}
                   placeholder="Detalles breves del servicio..."
                   onChange={(event) =>
-                    setNewServiceDraft((prev) => ({
-                      ...prev,
+                    updateNewServiceDraft({
                       description: event.currentTarget.value,
-                    }))
+                    })
                   }
                 />
               </label>
@@ -246,15 +289,14 @@ export default function ServicesEditor({
                   Duración (min)
                   <input
                     type="number"
-                    min={15}
-                    max={600}
-                    step={15}
+                    min={SERVICE_DURATION_MINUTES.min}
+                    max={SERVICE_DURATION_MINUTES.max}
+                    step={SERVICE_DURATION_MINUTES.step}
                     value={newServiceDraft.duration}
                     onChange={(event) =>
-                      setNewServiceDraft((prev) => ({
-                        ...prev,
+                      updateNewServiceDraft({
                         duration: Number(event.currentTarget.value),
-                      }))
+                      })
                     }
                     required
                   />
@@ -263,20 +305,24 @@ export default function ServicesEditor({
                   Precio ($)
                   <input
                     type="number"
-                    min={0}
-                    max={10_000_000}
-                    step={500}
+                    min={SERVICE_PRICE.min}
+                    max={SERVICE_PRICE.max}
+                    step={SERVICE_PRICE.step}
                     value={newServiceDraft.price}
                     onChange={(event) =>
-                      setNewServiceDraft((prev) => ({
-                        ...prev,
+                      updateNewServiceDraft({
                         price: Number(event.currentTarget.value),
-                      }))
+                      })
                     }
                     required
                   />
                 </label>
               </div>
+              {serviceDraftError && (
+                <p className={styles.message} role="alert">
+                  {serviceDraftError}
+                </p>
+              )}
               <button
                 type="button"
                 className="primary-button"
@@ -296,7 +342,7 @@ export default function ServicesEditor({
                 <input
                   type="text"
                   value={selectedService.name}
-                  maxLength={100}
+                  maxLength={SERVICE_NAME_MAX_LENGTH}
                   onChange={(event) =>
                     updateService(selectedService.id, {
                       name: event.currentTarget.value,
@@ -326,7 +372,7 @@ export default function ServicesEditor({
                 Descripción
                 <textarea
                   value={selectedService.description ?? ""}
-                  maxLength={240}
+                  maxLength={SERVICE_DESCRIPTION_MAX_LENGTH}
                   rows={3}
                   onChange={(event) =>
                     updateService(selectedService.id, {
@@ -340,9 +386,9 @@ export default function ServicesEditor({
                   Duración (min)
                   <input
                     type="number"
-                    min={15}
-                    max={600}
-                    step={15}
+                    min={SERVICE_DURATION_MINUTES.min}
+                    max={SERVICE_DURATION_MINUTES.max}
+                    step={SERVICE_DURATION_MINUTES.step}
                     value={selectedService.duration}
                     onChange={(event) =>
                       updateService(selectedService.id, {
@@ -356,9 +402,9 @@ export default function ServicesEditor({
                   Precio ($)
                   <input
                     type="number"
-                    min={0}
-                    max={10_000_000}
-                    step={500}
+                    min={SERVICE_PRICE.min}
+                    max={SERVICE_PRICE.max}
+                    step={SERVICE_PRICE.step}
                     value={selectedService.price}
                     onChange={(event) =>
                       updateService(selectedService.id, {
@@ -372,11 +418,8 @@ export default function ServicesEditor({
               <button
                 type="button"
                 className={styles.removeServiceButton}
-                disabled={services.length <= 1}
-                onClick={() => {
-                  removeService(selectedService.id);
-                  setSelectedServiceIdForAdmin(null);
-                }}
+                disabled={services.length <= MIN_APPOINTMENT_SERVICES}
+                onClick={() => removeService(selectedService.id)}
               >
                 <FiTrash2 aria-hidden="true" />
                 Eliminar servicio
@@ -408,7 +451,7 @@ export default function ServicesEditor({
                   className={styles.categoryInput}
                   value={cat.name}
                   onChange={(e) => updateCategoryName(cat.id, e.target.value)}
-                  maxLength={60}
+                  maxLength={CATEGORY_NAME_MAX_LENGTH}
                   autoFocus
                 />
               ) : (
@@ -424,12 +467,26 @@ export default function ServicesEditor({
               >
                 {isEditing ? <FiCheck /> : <FiEdit2 />}
               </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setEditingCategoryId(null)}
+                  title="Descartar edición"
+                  aria-label={`Descartar edición de la categoría ${cat.name}`}
+                >
+                  <FiX aria-hidden="true" />
+                </button>
+              )}
 
               {/* Botón Eliminar (X / Papelera) */}
               <button
                 type="button"
                 className={styles.removeServiceButton}
-                disabled={servicesCount > 0 || categories.length <= 1}
+                disabled={
+                  servicesCount > 0 ||
+                  categories.length <= MIN_APPOINTMENT_CATEGORIES
+                }
                 onClick={() => removeCategory(cat.id)}
                 title={
                   servicesCount > 0
@@ -450,10 +507,25 @@ export default function ServicesEditor({
           type="button"
           className="secondary-button"
           onClick={addCategory}
+          disabled={categories.length >= MAX_APPOINTMENT_CATEGORIES}
         >
           <FiPlus /> Agregar categoría
         </button>
       </div>
+      <ConfirmDialog
+        isOpen={serviceIdPendingRemoval !== null}
+        title="Eliminar servicio"
+        description={
+          servicePendingRemoval
+            ? `¿Querés eliminar el servicio «${servicePendingRemoval.name}»?`
+            : "El servicio seleccionado ya no está disponible."
+        }
+        confirmText="Eliminar servicio"
+        cancelText="No, mantener"
+        confirmButtonClassName={styles.removeServiceButton}
+        onConfirm={confirmRemoveService}
+        onCancel={() => setServiceIdPendingRemoval(null)}
+      />
     </section>
   );
 }

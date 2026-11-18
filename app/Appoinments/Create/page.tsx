@@ -3,7 +3,18 @@
 import { useState } from "react";
 import type { SubmitEvent } from "react";
 import { getArgentinaDateKey } from "../appointmentDates";
-import { validateAppointmentContactFields } from "@/lib/appointmentContactValidation";
+import {
+  CONTACT_NAME_MAX_LENGTH,
+  EMAIL_MAX_LENGTH,
+  CREATE_STEPS,
+  MIN_APPOINTMENT_SERVICES,
+  PHONE_INPUT_MAX_LENGTH,
+} from "@/app/constants";
+import type {
+  CreateAppointmentApiResult,
+} from "@/app/Appoinments/types";
+import type { AppointmentContact } from "@/app/types";
+import { validateAppointmentContactFields } from "@/app/validations";
 
 import { FiArrowLeft, FiArrowRight, FiCheck } from "react-icons/fi";
 import AppointmentHeader from "../components/AppointmentHeader";
@@ -14,13 +25,8 @@ import Loading from "@/components/Loading";
 import Services from "@/components/Services";
 import TurnSummary from "@/app/Appoinments/components/TurnSummary";
 import useAppointmentSettings from "@/components/useAppointmentSettings";
-import { CREATE_STEPS } from "@/app/constants";
 
 import styles from "./page.module.css";
-
-type ApiError = {
-  error?: string;
-};
 
 export default function CreateAppointmentPage() {
   const {
@@ -37,7 +43,11 @@ export default function CreateAppointmentPage() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [reservationCode, setReservationCode] = useState<number | null>(null);
   const [formMessage, setFormMessage] = useState("");
-  const [contact, setContact] = useState({ name: "", email: "", phone: "" });
+  const [contact, setContact] = useState<AppointmentContact>({
+    name: "",
+    email: "",
+    phone: "",
+  });
   const [editedContactFields, setEditedContactFields] = useState<
     Partial<Record<keyof typeof contact, boolean>>
   >({});
@@ -192,7 +202,7 @@ export default function CreateAppointmentPage() {
                           type="text"
                           autoComplete="name"
                           placeholder="¿Cuál es tu nombre?"
-                          maxLength={100}
+                          maxLength={CONTACT_NAME_MAX_LENGTH}
                           value={contact.name}
                           aria-invalid={
                             editedContactFields.name &&
@@ -233,7 +243,7 @@ export default function CreateAppointmentPage() {
                           type="email"
                           autoComplete="email"
                           placeholder="tu@email.com"
-                          maxLength={254}
+                          maxLength={EMAIL_MAX_LENGTH}
                           value={contact.email}
                           aria-invalid={
                             editedContactFields.email &&
@@ -275,7 +285,7 @@ export default function CreateAppointmentPage() {
                           autoComplete="tel"
                           inputMode="tel"
                           placeholder="+54 9 11..."
-                          maxLength={30}
+                          maxLength={PHONE_INPUT_MAX_LENGTH}
                           value={contact.phone}
                           aria-invalid={
                             editedContactFields.phone &&
@@ -334,7 +344,8 @@ export default function CreateAppointmentPage() {
                   disabled={
                     isBusy ||
                     !settings ||
-                    (currentStep === 0 && selectedServiceIds.length === 0) ||
+                    (currentStep === 0 &&
+                      selectedServiceIds.length < MIN_APPOINTMENT_SERVICES) ||
                     (currentStep === 1 && (!selectedDate || !selectedTime))
                   }
                   onClick={() => void continueToNextStep()}
@@ -399,7 +410,11 @@ export default function CreateAppointmentPage() {
   }
 
   function continueToNextStep() {
-    if (currentStep === 0 && settings && selectedServiceIds.length > 0) {
+    if (
+      currentStep === 0 &&
+      settings &&
+      selectedServiceIds.length >= MIN_APPOINTMENT_SERVICES
+    ) {
       setToday(getArgentinaDateKey(new Date()));
       setFormMessage("");
       setCurrentStep(1);
@@ -434,7 +449,11 @@ export default function CreateAppointmentPage() {
       return;
     }
 
-    if (!selectedDate || !selectedTime || selectedServiceIds.length === 0) {
+    if (
+      !selectedDate ||
+      !selectedTime ||
+      selectedServiceIds.length < MIN_APPOINTMENT_SERVICES
+    ) {
       setFormMessage("Volvé a elegir los servicios, la fecha y el horario.");
       return;
     }
@@ -455,11 +474,7 @@ export default function CreateAppointmentPage() {
           phone: contact.phone,
         }),
       });
-      const result = (await response.json()) as ApiError & {
-        status?: string;
-        appointment_id?: string;
-        reservation_code?: number;
-      };
+      const result = (await response.json()) as CreateAppointmentApiResult;
       const code = result.reservation_code;
 
       if (!response.ok) {

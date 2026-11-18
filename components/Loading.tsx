@@ -1,10 +1,5 @@
+import type { LoadingProps } from "./types";
 import styles from "./Loading.module.css";
-
-type LoadingProps = {
-  label: string;
-  inline?: boolean;
-  className?: string;
-};
 
 export default function Loading({
   label,

@@ -1,20 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Loading from "@/components/Loading";
+import type { ConfirmDialogProps } from "@/components/types";
 import styles from "./ConfirmDialog.module.css";
-
-interface ConfirmDialogProps {
-  isOpen: boolean;
-  title: string;
-  description?: string;
-  confirmText?: string;
-  cancelText?: string;
-  isBusy?: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-  confirmButtonClassName?: string;
-}
 
 export default function ConfirmDialog({
   isOpen,
@@ -26,6 +14,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   confirmButtonClassName = "primary-button",
+  isShowCancelBtn = true,
 }: ConfirmDialogProps) {
   if (!isOpen) return null;
 
@@ -38,17 +27,21 @@ export default function ConfirmDialog({
         aria-labelledby="confirm-dialog-title"
       >
         <h2 id="confirm-dialog-title">{title}</h2>
-        {description && <p className={styles.dialogDescription}>{description}</p>}
-        
+        {description && (
+          <p className={styles.dialogDescription}>{description}</p>
+        )}
+
         <div className={styles.dialogActions}>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={onCancel}
-            disabled={isBusy}
-          >
-            {cancelText}
-          </button>
+          {isShowCancelBtn && (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={onCancel}
+              disabled={isBusy}
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             type="button"
             className={confirmButtonClassName}
